@@ -46,6 +46,7 @@ export function nuevaVariante (datos = {}) {
     sku: '',
     precio: '',
     stock: 0,
+    con_movimientos: false,
     medidas: {},
     archivos: [],
     skuManual: false,

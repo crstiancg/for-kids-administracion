@@ -43,6 +43,8 @@ return [
         // El form de productos elige talla y color de cada variante.
         'tallas.index' => ['productos.store', 'productos.update'],
         'colores.index' => ['productos.store', 'productos.update'],
+        // Los formularios de inventario buscan la variante de cada línea.
+        'inventario.variantes' => ['inventario.entradas', 'inventario.salidas', 'inventario.ajustes'],
     ],
 
     // Para la descripción que genera permisos:sync: "Roles · Crear".
@@ -54,6 +56,7 @@ return [
         'categorias' => 'Categorías',
         'tallas' => 'Tallas',
         'productos' => 'Productos',
+        'inventario' => 'Inventario',
     ],
 
     'acciones' => [
@@ -66,6 +69,10 @@ return [
         'sesiones' => 'Ver sesiones',
         'sesiones.revocar' => 'Cerrar sesiones',
         'rutas-disponibles' => 'Ver rutas sin permiso',
+        'entradas' => 'Registrar entradas',
+        'salidas' => 'Registrar salidas',
+        'ajustes' => 'Ajustar por conteo',
+        'variantes' => 'Buscar variantes',
     ],
 
 ];

@@ -95,6 +95,13 @@
           />
 
           <AppNavItem
+            v-if="userStore.hasPermission('inventario.index')"
+            to="/inventario"
+            icon="warehouse"
+            label="Inventario"
+          />
+
+          <AppNavItem
             to="/second"
             icon="widgets"
             label="Segunda página"

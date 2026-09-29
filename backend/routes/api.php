@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ColorController;
+use App\Http\Controllers\InventarioController;
 use App\Http\Controllers\PermisoController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\RolController;
@@ -36,7 +37,16 @@ Route::middleware(['auth:api', AutorizarPorRuta::ALIAS])->group(function () {
         Route::apiResource('categorias', CategoriaController::class);
         Route::apiResource('tallas', TallaController::class);
         Route::apiResource('productos', ProductoController::class);
+
+        // Inventario: el libro sólo se consulta y se le agregan movimientos
+        // (no hay update ni destroy: un error se corrige con otro movimiento).
+        Route::post('inventario/entradas', [InventarioController::class, 'entradas'])->name('inventario.entradas');
+        Route::post('inventario/salidas', [InventarioController::class, 'salidas'])->name('inventario.salidas');
+        Route::post('inventario/ajustes', [InventarioController::class, 'ajustes'])->name('inventario.ajustes');
     });
+
+    Route::get('inventario', [InventarioController::class, 'index'])->name('inventario.index');
+    Route::get('inventario/variantes', [InventarioController::class, 'variantes'])->name('inventario.variantes');
 
     Route::patch('usuarios/{usuario}/toggle-active', [UserController::class, 'toggleActive'])
         ->name('usuarios.toggle-active');

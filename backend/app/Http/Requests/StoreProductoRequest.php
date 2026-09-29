@@ -261,7 +261,8 @@ class StoreProductoRequest extends FormRequest
     }
 
     /**
-     * Quitar una variante que tiene stock haría desaparecer mercadería.
+     * Quitar una variante que tiene stock haría desaparecer mercadería, y una
+     * con historial de inventario dejaría movimientos sin su variante.
      */
     private function noQuitaVariantesConStock(?Producto $producto): Closure
     {
@@ -272,13 +273,13 @@ class StoreProductoRequest extends FormRequest
 
             $conservadas = collect((array) $value)->pluck('id')->filter()->map(fn ($id) => (int) $id);
 
-            $quitadasConStock = $producto->variantes()
+            $bloqueadas = $producto->variantes()
                 ->whereNotIn('id', $conservadas)
-                ->where('stock', '!=', 0)
+                ->where(fn ($q) => $q->where('stock', '!=', 0)->orWhereHas('movimientos'))
                 ->pluck('sku');
 
-            if ($quitadasConStock->isNotEmpty()) {
-                $fail('No se pueden quitar variantes con stock: '.$quitadasConStock->implode(', ').'.');
+            if ($bloqueadas->isNotEmpty()) {
+                $fail('No se pueden quitar variantes con stock o con historial de inventario: '.$bloqueadas->implode(', ').'.');
             }
         };
     }

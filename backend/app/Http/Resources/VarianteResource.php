@@ -25,6 +25,8 @@ class VarianteResource extends JsonResource
             // null = usa el precio base del producto.
             'precio' => $this->precio,
             'stock' => $this->stock,
+            // Con historial de inventario no se puede quitar del producto.
+            'con_movimientos' => $this->whenHas('movimientos_exists', fn ($existe) => (bool) $existe),
             // {"Largo": 52} en cm; objeto vacío y no [] cuando no hay.
             'medidas' => (object) ($this->medidas ?? []),
             'archivos' => ArchivoResource::collection($this->whenLoaded('archivos')),

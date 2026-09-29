@@ -89,6 +89,13 @@ class ProductoController extends Controller
             ], 409);
         }
 
+        // El historial de inventario no se pierde (FK restrict).
+        if ($producto->variantes()->whereHas('movimientos')->exists()) {
+            return response()->json([
+                'message' => 'No se puede eliminar: tiene historial de inventario. Desactívelo en su lugar.',
+            ], 409);
+        }
+
         DB::transaction(function () use ($producto) {
             // El polimórfico no tiene FK: el cascade de variantes no alcanza
             // a sus fotos.
@@ -182,7 +189,9 @@ class ProductoController extends Controller
                 ->join('tallas', 'tallas.id', '=', 'variantes.talla_id')
                 ->orderBy('tallas.orden')
                 ->orderBy('variantes.id')
-                ->select('variantes.*'),
+                ->select('variantes.*')
+                // Después del select: antes, select('variantes.*') lo pisa.
+                ->withExists('movimientos'),
             'variantes.talla:id,nombre,orden',
             'variantes.color:id,nombre,hexadecimal',
             'variantes.archivos',

@@ -324,8 +324,9 @@
 
               <span class="producto-form__stock text-mono">{{ variante.stock }}</span>
 
-              <!-- Con stock no se quita: desaparecería mercadería (el backend
-                   también lo rechaza). -->
+              <!-- Con stock o con historial de inventario no se quita: se
+                   perdería mercadería o su trazabilidad (el backend también
+                   lo rechaza). -->
               <q-btn
                 flat
                 dense
@@ -333,12 +334,12 @@
                 icon="close"
                 size="sm"
                 color="grey-7"
-                :disable="variante.stock !== 0"
+                :disable="variante.stock !== 0 || variante.con_movimientos"
                 :aria-label="`Quitar variante ${i + 1}`"
                 @click="quitar(i)"
               >
-                <q-tooltip v-if="variante.stock !== 0">
-                  Tiene stock: no se puede quitar
+                <q-tooltip v-if="variante.stock !== 0 || variante.con_movimientos">
+                  {{ variante.stock !== 0 ? 'Tiene stock' : 'Tiene historial de inventario' }}: no se puede quitar
                 </q-tooltip>
               </q-btn>
             </div>
@@ -772,6 +773,7 @@ onMounted(async () => {
         sku: v.sku,
         precio: v.precio ?? '',
         stock: v.stock,
+        con_movimientos: v.con_movimientos ?? false,
         // Los inputs trabajan con texto.
         medidas: Object.fromEntries(Object.entries(v.medidas ?? {}).map(([k, val]) => [k, String(val)])),
         archivos: v.archivos.map(aFoto),
