@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\Variante;
+use App\Services\Precios;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Storage;
@@ -18,6 +19,30 @@ class VarianteStockResource extends JsonResource
     /**
      * @return array<string, mixed>
      */
+    private function conPrecio(): bool
+    {
+        return $this->relationLoaded('producto') && array_key_exists('precio', $this->producto->getAttributes());
+    }
+
+    /**
+     * @return array{precio: string, precio_lista: string, oferta: ?string}
+     */
+    private function precioVigente(): array
+    {
+        $vigente = app(Precios::class)->vigente(
+            (float) ($this->precio ?? $this->producto->precio),
+            $this->producto->id,
+            $this->producto->categoria_id,
+            $this->id,
+        );
+
+        return [
+            'precio' => $vigente['precio'],
+            'precio_lista' => $vigente['precio_lista'],
+            'oferta' => $vigente['oferta']?->etiqueta(),
+        ];
+    }
+
     private function miniatura(): ?string
     {
         $archivo = $this->portada
@@ -33,12 +58,9 @@ class VarianteStockResource extends JsonResource
             'sku' => $this->sku,
             'stock' => $this->stock,
             'costo_promedio' => $this->costo_promedio,
-            // Precio de venta: el de la variante o, si no tiene, el base del
-            // producto. Sólo cuando se cargó el precio del producto.
-            'precio' => $this->when(
-                $this->relationLoaded('producto') && array_key_exists('precio', $this->producto->getAttributes()),
-                fn () => $this->precio ?? $this->producto->precio,
-            ),
+            // Precio de venta HOY (con la mejor oferta vigente) y el de lista.
+            // Sólo cuando se cargó el precio del producto.
+            ...($this->conPrecio() ? $this->precioVigente() : []),
             'producto' => $this->whenLoaded('producto', fn () => $this->producto->only(['id', 'nombre'])),
             'talla' => $this->whenLoaded('talla', fn () => $this->talla->nombre),
             'color' => $this->whenLoaded('color', fn () => $this->color->only(['nombre', 'hexadecimal'])),

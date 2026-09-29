@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\Precios;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Passport\Passport;
 
@@ -12,7 +13,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Una instancia por request: las ofertas vigentes se cargan una vez.
+        $this->app->scoped(Precios::class);
     }
 
     /**

@@ -17,6 +17,12 @@
           {{ producto.nombre }}
         </div>
         <div
+          v-if="producto.oferta"
+          class="selector__oferta"
+        >
+          {{ producto.oferta.etiqueta }} · {{ producto.oferta.nombre }}
+        </div>
+        <div
           v-if="colorVista"
           class="selector__colorVista"
         >
@@ -97,7 +103,7 @@
                     </span>
                     <span
                       v-if="precioDistinto(celda(talla.id, color.id))"
-                      class="selector__precio text-mono"
+                      :class="['selector__precio', 'text-mono', { 'selector__precio--oferta': enOferta(celda(talla.id, color.id)) }]"
                     >{{ formatearPrecio(celda(talla.id, color.id).precio) }}</span>
                     <span
                       v-if="pos.cantidadDeVariante(celda(talla.id, color.id).id)"
@@ -188,8 +194,13 @@ function disponible (variante) {
   return variante.stock - pos.cantidadDeVariante(variante.id) > 0
 }
 
+// Se muestra el precio de la celda si difiere del base o si está en oferta.
 function precioDistinto (variante) {
-  return Number(variante.precio) !== Number(props.producto.precio)
+  return Number(variante.precio) !== Number(props.producto.precio) || enOferta(variante)
+}
+
+function enOferta (variante) {
+  return Number(variante.precio) < Number(variante.precio_lista)
 }
 
 // Destello en la celda recién sumada.
@@ -406,6 +417,22 @@ function agregar (variante) {
 .selector__precio {
   font-size: 10.5px;
   color: var(--app-ink-2);
+
+  &--oferta {
+    font-weight: 700;
+    color: #DC2626;
+  }
+}
+
+.selector__oferta {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #DC2626;
+  font-size: 12px;
+  font-weight: 700;
+  color: #FFFFFF;
 }
 
 .selector__enCarrito {

@@ -150,7 +150,7 @@ class VentaController extends Controller
             'cliente',
             'usuario:id,name',
             'items' => fn ($q) => $q->orderBy('id'),
-            'items.variante.producto:id,nombre,precio',
+            'items.variante.producto:id,nombre,precio,categoria_id',
             'items.variante.talla:id,nombre',
             'items.variante.color:id,nombre,hexadecimal',
             'pagos' => fn ($q) => $q->orderBy('id'),

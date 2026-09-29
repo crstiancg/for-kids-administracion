@@ -36,7 +36,9 @@ export function lineaDesdeCatalogo (producto, variante) {
     talla: variante.talla?.nombre ?? '',
     color: variante.color ?? null,
     stock: variante.stock,
+    // El de hoy (con oferta) y el de lista, para mostrar el ahorro.
     precio_unitario: Number(variante.precio ?? producto.precio).toFixed(2),
+    precio_lista: Number(variante.precio_lista ?? variante.precio ?? producto.precio).toFixed(2),
     miniatura_url: variante.miniatura_url ?? producto.miniatura_url ?? null
   }
 }
@@ -51,6 +53,7 @@ export function lineaDesdeEscaner (variante) {
     color: variante.color ?? null,
     stock: variante.stock,
     precio_unitario: Number(variante.precio ?? 0).toFixed(2),
+    precio_lista: Number(variante.precio_lista ?? variante.precio ?? 0).toFixed(2),
     miniatura_url: variante.miniatura_url ?? null
   }
 }

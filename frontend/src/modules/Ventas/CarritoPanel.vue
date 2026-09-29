@@ -153,7 +153,13 @@
               :aria-label="`Precio unitario de ${item.sku}`"
               @click.stop
             >
-            <span class="linea__total text-mono">{{ formatearPrecio(item.cantidad * Number(item.precio_unitario || 0)) }}</span>
+            <span class="linea__total text-mono">
+              <s
+                v-if="Number(item.precio_lista) > Number(item.precio_unitario)"
+                class="linea__lista"
+              >{{ formatearPrecio(item.cantidad * Number(item.precio_lista)) }}</s>
+              {{ formatearPrecio(item.cantidad * Number(item.precio_unitario || 0)) }}
+            </span>
           </div>
 
           <p
@@ -738,6 +744,14 @@ defineExpose({ cobrar, enfocarCliente })
   font-size: 13.5px;
   font-weight: 700;
   color: var(--app-ink);
+}
+
+.linea__lista {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  text-align: right;
+  color: var(--app-ink-2);
 }
 
 .linea__quitar {

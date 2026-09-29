@@ -6,6 +6,7 @@ use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\ColorController;
 use App\Http\Controllers\InventarioController;
+use App\Http\Controllers\OfertaController;
 use App\Http\Controllers\PagoController;
 use App\Http\Controllers\PedidoController;
 use App\Http\Controllers\PermisoController;
@@ -42,6 +43,7 @@ Route::middleware(['auth:api', AutorizarPorRuta::ALIAS])->group(function () {
         Route::apiResource('categorias', CategoriaController::class);
         Route::apiResource('tallas', TallaController::class);
         Route::apiResource('productos', ProductoController::class);
+        Route::apiResource('ofertas', OfertaController::class);
 
         // Inventario: el libro sólo se consulta y se le agregan movimientos
         // (no hay update ni destroy: un error se corrige con otro movimiento).

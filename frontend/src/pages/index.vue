@@ -124,6 +124,13 @@
           />
 
           <AppNavItem
+            v-if="userStore.hasPermission('ofertas.index')"
+            to="/ofertas"
+            icon="local_offer"
+            label="Ofertas"
+          />
+
+          <AppNavItem
             v-if="userStore.hasPermission('inventario.index')"
             to="/inventario"
             icon="warehouse"

@@ -37,9 +37,12 @@ return [
         'colores.show' => ['colores.update'],
         'categorias.show' => ['categorias.update'],
         // El form de categorías lista las demás para elegir la categoría padre.
-        'categorias.index' => ['categorias.store', 'categorias.update', 'productos.store', 'productos.update', 'productos.index', 'ventas.store'],
+        'categorias.index' => ['categorias.store', 'categorias.update', 'productos.store', 'productos.update', 'productos.index', 'ventas.store', 'ofertas.store', 'ofertas.update'],
         'tallas.show' => ['tallas.update'],
         'productos.show' => ['productos.update'],
+        'ofertas.show' => ['ofertas.update'],
+        // El form de ofertas busca el producto al que se aplica.
+        'productos.index' => ['ofertas.store', 'ofertas.update'],
         // El form de productos elige talla y color de cada variante.
         // El form de productos y los filtros del punto de venta.
         'tallas.index' => ['productos.store', 'productos.update', 'ventas.store'],
@@ -70,6 +73,7 @@ return [
         'categorias' => 'Categorías',
         'tallas' => 'Tallas',
         'productos' => 'Productos',
+        'ofertas' => 'Ofertas',
         'inventario' => 'Inventario',
         'clientes' => 'Clientes',
         'pedidos' => 'Pedidos',

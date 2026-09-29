@@ -40,6 +40,11 @@
             v-if="pos.cantidadDeProducto(p.id)"
             class="tarjeta__enCarrito"
           >×{{ pos.cantidadDeProducto(p.id) }}</span>
+          <span
+            v-if="p.oferta"
+            class="tarjeta__oferta"
+            :title="`${p.oferta.nombre} · hasta ${formatearFechaHora(p.oferta.termina_at)}`"
+          >{{ p.oferta.etiqueta }}</span>
         </div>
 
         <div class="tarjeta__cuerpo">
@@ -66,7 +71,13 @@
           </div>
 
           <div class="tarjeta__pie">
-            <span class="tarjeta__precio text-mono">{{ rangoPrecio(p) }}</span>
+            <span class="tarjeta__precios">
+              <s
+                v-if="enOferta(p)"
+                class="tarjeta__lista text-mono"
+              >{{ rangoPrecio(p, 'precio_lista') }}</s>
+              <span :class="['tarjeta__precio', 'text-mono', { 'tarjeta__precio--oferta': enOferta(p) }]">{{ rangoPrecio(p) }}</span>
+            </span>
             <span class="tarjeta__agregar">
               <q-icon
                 name="add"
@@ -117,6 +128,7 @@ import { computed, ref, watch } from 'vue'
 import AppButton from '@/components/AppButton.vue'
 import VentaService from '@/services/VentaService'
 import { usePosStore } from '@/stores/pos-store'
+import { formatearFechaHora } from '@/utils/fechas'
 import { formatearPrecio } from '@/utils/moneda'
 
 const props = defineProps({
@@ -182,6 +194,10 @@ async function cargar (numero = 1) {
 watch(() => [props.filtros, props.search, props.orden], () => cargar(1), { deep: true, immediate: true })
 
 // ── Presentación ──
+function enOferta (p) {
+  return p.variantes.some((v) => Number(v.precio) < Number(v.precio_lista))
+}
+
 function nivelStock (stock) {
   if (!stock) return 'agotado'
   if (stock <= 5) return 'bajo'
@@ -214,8 +230,9 @@ function coloresDisponibles (p) {
 }
 
 // "S/ 40.00" o "S/ 40.00 – 45.00" si las variantes tienen precios distintos.
-function rangoPrecio (p) {
-  const precios = p.variantes.map((v) => Number(v.precio))
+// `campo`: 'precio' (el de hoy, con oferta) o 'precio_lista' (para tachar).
+function rangoPrecio (p, campo = 'precio') {
+  const precios = p.variantes.map((v) => Number(v[campo]))
   if (!precios.length) return formatearPrecio(p.precio)
   const min = Math.min(...precios)
   const max = Math.max(...precios)
@@ -351,6 +368,19 @@ defineExpose({ refrescar: () => cargar(1) })
   color: #FFFFFF;
 }
 
+.tarjeta__oferta {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #DC2626;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.35);
+}
+
 .tarjeta__cuerpo {
   display: flex;
   flex: 1;
@@ -408,10 +438,25 @@ defineExpose({ refrescar: () => cargar(1) })
   padding-top: 8px;
 }
 
+.tarjeta__precios {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.tarjeta__lista {
+  font-size: 11px;
+  color: var(--app-ink-2);
+}
+
 .tarjeta__precio {
   font-size: 14px;
   font-weight: 700;
   color: var(--app-ink);
+
+  &--oferta {
+    color: #DC2626;
+  }
 }
 
 .tarjeta__agregar {
