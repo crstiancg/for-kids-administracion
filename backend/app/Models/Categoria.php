@@ -13,12 +13,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['nombre', 'parent_id'])]
 class Categoria extends Model
 {
-    /**
-     * Explícita: por convención Laravel pluraliza en inglés ("categorias" sale
-     * bien de casualidad, pero no hay que depender de eso).
-     */
-    protected $table = 'categorias';
-
     public function padre(): BelongsTo
     {
         return $this->belongsTo(self::class, 'parent_id');

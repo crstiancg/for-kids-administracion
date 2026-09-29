@@ -14,8 +14,6 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 #[Fillable(['nombre', 'ruta', 'miniatura', 'mime', 'tamano', 'ancho', 'alto', 'orden'])]
 class Archivo extends Model
 {
-    protected $table = 'archivos';
-
     public function archivable(): MorphTo
     {
         return $this->morphTo();

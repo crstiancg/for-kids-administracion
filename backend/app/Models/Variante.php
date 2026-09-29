@@ -14,8 +14,6 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 #[Fillable(['talla_id', 'color_id', 'sku', 'precio', 'medidas'])]
 class Variante extends Model
 {
-    protected $table = 'variantes';
-
     protected function casts(): array
     {
         return [

@@ -9,8 +9,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['nombre', 'orden'])]
 class Talla extends Model
 {
-    protected $table = 'tallas';
-
     public function variantes(): HasMany
     {
         return $this->hasMany(Variante::class);

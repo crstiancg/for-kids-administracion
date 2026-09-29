@@ -12,8 +12,6 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 #[Fillable(['nombre', 'categoria_id', 'descripcion', 'precio', 'activo'])]
 class Producto extends Model
 {
-    protected $table = 'productos';
-
     protected function casts(): array
     {
         return [
