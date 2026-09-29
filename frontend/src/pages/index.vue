@@ -100,6 +100,25 @@
           />
         </nav>
 
+        <template v-if="['categorias.index', 'colores.index'].some((p) => userStore.hasPermission(p))">
+          <div class="app-drawer__section">Catálogos</div>
+
+          <nav class="app-drawer__nav">
+            <AppNavItem
+              v-if="userStore.hasPermission('categorias.index')"
+              to="/categorias"
+              icon="category"
+              label="Categorías"
+            />
+            <AppNavItem
+              v-if="userStore.hasPermission('colores.index')"
+              to="/colores"
+              icon="palette"
+              label="Colores"
+            />
+          </nav>
+        </template>
+
         <template v-if="['usuarios.index', 'roles.index', 'permisos.index'].some((p) => userStore.hasPermission(p))">
           <div class="app-drawer__section">Seguridad</div>
 

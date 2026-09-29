@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CategoriaController;
+use App\Http\Controllers\ColorController;
 use App\Http\Controllers\PermisoController;
 use App\Http\Controllers\RolController;
 use App\Http\Controllers\UserController;
@@ -28,6 +30,8 @@ Route::middleware(['auth:api', AutorizarPorRuta::ALIAS])->group(function () {
         Route::apiResource('permisos', PermisoController::class)->only(['index', 'store', 'show', 'update']);
 
         Route::apiResource('usuarios', UserController::class);
+        Route::apiResource('colores', ColorController::class)->parameters(['colores' => 'color']);
+        Route::apiResource('categorias', CategoriaController::class);
     });
 
     Route::patch('usuarios/{usuario}/toggle-active', [UserController::class, 'toggleActive'])

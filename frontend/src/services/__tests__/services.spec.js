@@ -6,6 +6,7 @@ vi.mock('@/boot/axios', () => ({ api }))
 import PermisoService from '@/services/PermisoService'
 import RolService from '@/services/RolService'
 import UsuarioService from '@/services/UsuarioService'
+import ColorService from '@/services/ColorService'
 
 beforeEach(() => {
   Object.values(api).forEach((fn) => fn.mockReset())
@@ -15,7 +16,8 @@ beforeEach(() => {
 describe.each([
   ['PermisoService', PermisoService, 'api/permisos'],
   ['RolService', RolService, 'api/roles'],
-  ['UsuarioService', UsuarioService, 'api/usuarios']
+  ['UsuarioService', UsuarioService, 'api/usuarios'],
+  ['ColorService', ColorService, 'api/colores']
 ])('%s', (_, Service, url) => {
   it('getData pasa los params de la tabla y devuelve el cuerpo', async () => {
     api.get.mockResolvedValue({ data: { data: [{ id: 1 }], total: 1 } })

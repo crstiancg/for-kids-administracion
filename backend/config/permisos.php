@@ -34,6 +34,10 @@ return [
         'roles.show' => ['roles.update'],
         'permisos.show' => ['permisos.update'],
         'usuarios.show' => ['usuarios.update'],
+        'colores.show' => ['colores.update'],
+        'categorias.show' => ['categorias.update'],
+        // El form de categorías lista las demás para elegir la categoría padre.
+        'categorias.index' => ['categorias.store', 'categorias.update'],
     ],
 
     // Para la descripción que genera permisos:sync: "Roles · Crear".
@@ -41,6 +45,8 @@ return [
         'roles' => 'Roles',
         'permisos' => 'Permisos',
         'usuarios' => 'Usuarios',
+        'colores' => 'Colores',
+        'categorias' => 'Categorías',
     ],
 
     'acciones' => [
