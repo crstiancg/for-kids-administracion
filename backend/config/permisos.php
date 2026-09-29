@@ -37,7 +37,12 @@ return [
         'colores.show' => ['colores.update'],
         'categorias.show' => ['categorias.update'],
         // El form de categorías lista las demás para elegir la categoría padre.
-        'categorias.index' => ['categorias.store', 'categorias.update'],
+        'categorias.index' => ['categorias.store', 'categorias.update', 'productos.store', 'productos.update', 'productos.index'],
+        'tallas.show' => ['tallas.update'],
+        'productos.show' => ['productos.update'],
+        // El form de productos elige talla y color de cada variante.
+        'tallas.index' => ['productos.store', 'productos.update'],
+        'colores.index' => ['productos.store', 'productos.update'],
     ],
 
     // Para la descripción que genera permisos:sync: "Roles · Crear".
@@ -47,6 +52,8 @@ return [
         'usuarios' => 'Usuarios',
         'colores' => 'Colores',
         'categorias' => 'Categorías',
+        'tallas' => 'Tallas',
+        'productos' => 'Productos',
     ],
 
     'acciones' => [

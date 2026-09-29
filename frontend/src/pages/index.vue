@@ -88,6 +88,7 @@
           </AppNavItem>
 
           <AppNavItem
+            v-if="userStore.hasPermission('productos.index')"
             to="/productos"
             icon="inventory_2"
             label="Productos"
@@ -100,7 +101,7 @@
           />
         </nav>
 
-        <template v-if="['categorias.index', 'colores.index'].some((p) => userStore.hasPermission(p))">
+        <template v-if="['categorias.index', 'colores.index', 'tallas.index'].some((p) => userStore.hasPermission(p))">
           <div class="app-drawer__section">Catálogos</div>
 
           <nav class="app-drawer__nav">
@@ -115,6 +116,12 @@
               to="/colores"
               icon="palette"
               label="Colores"
+            />
+            <AppNavItem
+              v-if="userStore.hasPermission('tallas.index')"
+              to="/tallas"
+              icon="straighten"
+              label="Tallas"
             />
           </nav>
         </template>

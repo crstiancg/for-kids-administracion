@@ -43,8 +43,15 @@ class ColorController extends Controller
         return response()->json($color);
     }
 
-    public function destroy(Color $color): Response
+    public function destroy(Color $color): JsonResponse|Response
     {
+        // La FK de variantes es restrict: sin este chequeo sería un 500.
+        if ($color->variantes()->exists()) {
+            return response()->json([
+                'message' => 'No se puede eliminar: hay productos con este color.',
+            ], 409);
+        }
+
         $color->delete();
 
         return response()->noContent();

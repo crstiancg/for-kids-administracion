@@ -47,6 +47,12 @@ class CategoriaController extends Controller
             ], 409);
         }
 
+        if ($categoria->productos()->exists()) {
+            return response()->json([
+                'message' => 'No se puede eliminar: tiene productos. Muévalos a otra categoría primero.',
+            ], 409);
+        }
+
         $categoria->delete();
 
         return response()->noContent();

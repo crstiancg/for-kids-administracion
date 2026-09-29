@@ -2,9 +2,27 @@
 // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file
 
 import { defineConfig } from '#q-app'
+import { loadEnv } from 'vite'
+
+// Origen de la API ("https://api.ejemplo.com") para la CSP de producción
+// (index.html): las fotos y las llamadas a la API salen de ahí. Vacío si la
+// API está en el mismo origen que el front ('self' ya la cubre).
+function origenDeLaApi () {
+  const { VITE_APP_API_URL: url } = loadEnv('', process.cwd(), 'VITE_APP_')
+  try {
+    return url ? new URL(url).origin : ''
+  } catch {
+    return ''
+  }
+}
 
 export default defineConfig((/* ctx */) => {
   return {
+    // Variables para index.html.
+    htmlVariables: {
+      apiOrigin: origenDeLaApi()
+    },
+
     // https://v2.quasar.dev/quasar-cli-vite/prefetch-feature
     // preFetch: true,
 

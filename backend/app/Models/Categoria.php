@@ -29,6 +29,11 @@ class Categoria extends Model
         return $this->hasMany(self::class, 'parent_id');
     }
 
+    public function productos(): HasMany
+    {
+        return $this->hasMany(Producto::class);
+    }
+
     /**
      * Ids de todas las subcategorías, a cualquier profundidad. Recorre por
      * niveles (una consulta por nivel), no fila por fila.

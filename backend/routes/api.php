@@ -4,7 +4,9 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ColorController;
 use App\Http\Controllers\PermisoController;
+use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\RolController;
+use App\Http\Controllers\TallaController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\AutorizarPorRuta;
 use Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests;
@@ -32,6 +34,8 @@ Route::middleware(['auth:api', AutorizarPorRuta::ALIAS])->group(function () {
         Route::apiResource('usuarios', UserController::class);
         Route::apiResource('colores', ColorController::class)->parameters(['colores' => 'color']);
         Route::apiResource('categorias', CategoriaController::class);
+        Route::apiResource('tallas', TallaController::class);
+        Route::apiResource('productos', ProductoController::class);
     });
 
     Route::patch('usuarios/{usuario}/toggle-active', [UserController::class, 'toggleActive'])
