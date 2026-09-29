@@ -119,6 +119,14 @@
       <dd class="pedido-detalle__total text-mono">
         {{ formatearPrecio(pedido.total) }}
       </dd>
+      <dt>Pagado</dt>
+      <dd class="text-mono">
+        {{ formatearPrecio(pedido.pagado) }}
+      </dd>
+      <dt>Saldo</dt>
+      <dd :class="['text-mono', Number(pedido.saldo) > 0 ? 'pedido-detalle__saldo' : '']">
+        {{ formatearPrecio(pedido.saldo) }}
+      </dd>
       <!-- Con el costo congelado al confirmar. -->
       <template v-if="pedido.ganancia !== null">
         <dt>Ganancia</dt>
@@ -127,6 +135,45 @@
         </dd>
       </template>
     </dl>
+
+    <section
+      v-if="pedido.pagos?.length"
+      class="pedido-detalle__pagos"
+    >
+      <h3 class="pedido-detalle__subtitulo">
+        Pagos
+      </h3>
+      <ul>
+        <li
+          v-for="pago in pedido.pagos"
+          :key="pago.id"
+        >
+          <div>
+            <div class="pedido-detalle__producto">
+              {{ pago.es_devolucion ? 'Devolución' : 'Cobro' }} · {{ pago.metodo_label }}
+            </div>
+            <div class="pedido-detalle__meta">
+              {{ formatearFecha(pago.fecha) }}
+              <template v-if="pago.referencia">
+                · Op. {{ pago.referencia }}
+              </template>
+              <template v-if="pago.vuelto && Number(pago.vuelto) > 0">
+                · recibió {{ formatearPrecio(pago.recibido) }}, vuelto {{ formatearPrecio(pago.vuelto) }}
+              </template>
+              <template v-if="pago.motivo">
+                · {{ pago.motivo }}
+              </template>
+              <template v-if="pago.usuario">
+                · {{ pago.usuario.name }}
+              </template>
+            </div>
+          </div>
+          <span :class="['text-mono', pago.es_devolucion ? 'pedido-detalle__perdida' : 'pedido-detalle__ganancia']">
+            {{ pago.es_devolucion ? '−' : '+' }}{{ formatearPrecio(Math.abs(Number(pago.monto))) }}
+          </span>
+        </li>
+      </ul>
+    </section>
 
     <p
       v-if="pedido.observacion"
@@ -292,6 +339,34 @@ defineExpose({ pedido, actualizar })
 .pedido-detalle__perdida {
   font-weight: 600;
   color: var(--q-negative) !important;
+}
+
+.pedido-detalle__saldo {
+  font-weight: 600;
+  color: var(--q-warning) !important;
+}
+
+.pedido-detalle__subtitulo {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--app-ink);
+}
+
+.pedido-detalle__pagos ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+    border-top: 1px solid var(--app-border-subtle);
+    font-size: 13px;
+  }
 }
 
 .pedido-detalle__observacion {

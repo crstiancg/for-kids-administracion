@@ -102,6 +102,13 @@
           />
 
           <AppNavItem
+            v-if="userStore.hasPermission('cajas.actual')"
+            to="/caja"
+            icon="point_of_sale"
+            label="Caja"
+          />
+
+          <AppNavItem
             v-if="userStore.hasPermission('productos.index')"
             to="/productos"
             icon="inventory_2"

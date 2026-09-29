@@ -53,6 +53,9 @@ return [
         // A diferencia de los catálogos, quien ve la lista de pedidos puede
         // abrir su detalle (un vendedor necesita ver qué lleva cada pedido).
         'pedidos.show' => ['pedidos.index', 'pedidos.update'],
+        // Cobrar, devolver o mover caja necesita saber si hay una abierta.
+        'cajas.actual' => ['pedidos.pagos', 'pedidos.devoluciones', 'cajas.abrir', 'cajas.cerrar', 'cajas.movimientos', 'cajas.index'],
+        'cajas.show' => ['cajas.index', 'cajas.cerrar'],
     ],
 
     // Para la descripción que genera permisos:sync: "Roles · Crear".
@@ -67,6 +70,7 @@ return [
         'inventario' => 'Inventario',
         'clientes' => 'Clientes',
         'pedidos' => 'Pedidos',
+        'cajas' => 'Caja',
     ],
 
     'acciones' => [
@@ -87,6 +91,12 @@ return [
         'confirmar' => 'Confirmar (descuenta stock)',
         'entregar' => 'Marcar entregado',
         'cancelar' => 'Cancelar',
+        'pagos' => 'Cobrar',
+        'devoluciones' => 'Devolver pagos',
+        'actual' => 'Ver caja abierta',
+        'abrir' => 'Abrir caja',
+        'cerrar' => 'Cerrar caja (arqueo)',
+        'movimientos' => 'Registrar ingresos y egresos',
     ],
 
 ];

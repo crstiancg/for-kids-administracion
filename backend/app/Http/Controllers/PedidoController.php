@@ -20,7 +20,7 @@ class PedidoController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = Pedido::query()->with('cliente')->withCount('items');
+        $query = Pedido::query()->with('cliente')->withCount('items')->withSum('pagos', 'monto');
 
         // Por código, nombre o documento del cliente.
         if ($request->filled('search')) {
@@ -98,6 +98,8 @@ class PedidoController extends Controller
             'items.variante.producto:id,nombre,precio',
             'items.variante.talla:id,nombre',
             'items.variante.color:id,nombre,hexadecimal',
+            'pagos' => fn ($q) => $q->orderBy('id'),
+            'pagos.usuario:id,name',
         ]);
 
         return (new PedidoResource($pedido))->resolve(request());

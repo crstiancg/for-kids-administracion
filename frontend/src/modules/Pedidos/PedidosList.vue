@@ -77,6 +77,22 @@
         </q-td>
       </template>
 
+      <template #body-cell-saldo="props">
+        <q-td
+          :props="props"
+          class="text-right text-mono"
+        >
+          <span
+            v-if="Number(props.row.saldo) > 0 && props.row.estado !== 'cancelado'"
+            class="pedido-saldo"
+          >{{ formatearPrecio(props.row.saldo) }}</span>
+          <span
+            v-else
+            class="pedido-detalle"
+          >—</span>
+        </q-td>
+      </template>
+
       <template #body-cell-estado="props">
         <q-td :props="props">
           <AppChip
@@ -162,7 +178,26 @@
           v-if="puede('cancelar')"
           variant="tertiary"
           label="Cancelar pedido"
+          :disable="Number(detalle.pagado) > 0"
           @click="pedirConfirmacion('cancelar')"
+        >
+          <q-tooltip v-if="Number(detalle.pagado) > 0">
+            Tiene pagos: devolvelos antes de cancelar
+          </q-tooltip>
+        </AppButton>
+        <AppButton
+          v-if="puede('devolver')"
+          variant="tertiary"
+          label="Devolver pago"
+          icon="undo"
+          @click="abrirPago('devolver')"
+        />
+        <AppButton
+          v-if="puede('cobrar')"
+          variant="secondary"
+          label="Cobrar"
+          icon="payments"
+          @click="abrirPago('cobrar')"
         />
         <AppButton
           v-if="puede('editar')"
@@ -183,8 +218,42 @@
           variant="primary"
           label="Marcar entregado"
           icon="local_shipping"
+          :disable="Number(detalle.saldo) > 0"
           :loading="accionando === 'entregar'"
           @click="ejecutar('entregar')"
+        >
+          <q-tooltip v-if="Number(detalle.saldo) > 0">
+            Falta cobrar {{ formatearPrecio(detalle.saldo) }}
+          </q-tooltip>
+        </AppButton>
+      </template>
+    </AppDialog>
+
+    <!-- ── Cobrar / devolver ── -->
+    <AppDialog
+      v-model="pagoDialog"
+      :title="modoPago === 'devolver' ? 'Devolver pago' : 'Cobrar pedido'"
+      persistent
+    >
+      <PagoForm
+        v-if="pagoDialog && detalle"
+        ref="pagoRef"
+        :key="`${modoPago}-${detalle.id}-${aperturasPago}`"
+        :pedido="detalle"
+        :modo="modoPago"
+        @save="pagoGuardado"
+      />
+      <template #actions>
+        <AppButton
+          variant="tertiary"
+          label="Cancelar"
+          @click="pagoDialog = false"
+        />
+        <AppButton
+          :variant="modoPago === 'devolver' ? 'destructive' : 'primary'"
+          :label="modoPago === 'devolver' ? 'Devolver' : 'Cobrar'"
+          :loading="pagoRef?.form.processing"
+          @click="pagoRef.submit()"
         />
       </template>
     </AppDialog>
@@ -233,6 +302,7 @@ import AppFilterBar from '@/components/AppFilterBar.vue'
 import AppFilterPill from '@/components/AppFilterPill.vue'
 import AppPageHeader from '@/components/AppPageHeader.vue'
 import AppTable from '@/components/AppTable.vue'
+import PagoForm from '@/modules/Caja/PagoForm.vue'
 import PedidoService from '@/services/PedidoService'
 import { useUserStore } from '@/stores/user-store'
 import { formatearPrecio } from '@/utils/moneda'
@@ -249,6 +319,7 @@ const columns = [
   { name: 'canal', label: 'Canal', field: 'canal_label', align: 'left' },
   { name: 'items_count', label: 'Ítems', field: 'items_count', align: 'right', classes: 'text-mono' },
   { name: 'total', label: 'Total', field: 'total', align: 'right', sortable: true },
+  { name: 'saldo', label: 'Saldo', field: 'saldo', align: 'right' },
   { name: 'estado', label: 'Estado', field: 'estado', align: 'left' },
   { name: 'acciones', label: '', field: 'id', align: 'right' }
 ]
@@ -360,6 +431,9 @@ function ver (pedido) {
 
 const REGLAS = {
   editar: { estados: ['pendiente'], permiso: 'pedidos.update' },
+  // Un pendiente puede recibir un adelanto.
+  cobrar: { estados: ['pendiente', 'confirmado'], permiso: 'pedidos.pagos', saldo: true },
+  devolver: { estados: ['pendiente', 'confirmado'], permiso: 'pedidos.devoluciones', pagado: true },
   confirmar: { estados: ['pendiente'], permiso: 'pedidos.confirmar' },
   entregar: { estados: ['confirmado'], permiso: 'pedidos.entregar' },
   cancelar: { estados: ['pendiente', 'confirmado'], permiso: 'pedidos.cancelar' }
@@ -367,7 +441,36 @@ const REGLAS = {
 
 function puede (accion) {
   const regla = REGLAS[accion]
-  return Boolean(detalle.value) && regla.estados.includes(detalle.value.estado) && userStore.hasPermission(regla.permiso)
+  const p = detalle.value
+  return Boolean(p) &&
+    regla.estados.includes(p.estado) &&
+    userStore.hasPermission(regla.permiso) &&
+    (!regla.saldo || Number(p.saldo) > 0) &&
+    (!regla.pagado || Number(p.pagado) > 0)
+}
+
+// ── Cobrar / devolver ──
+const pagoDialog = ref(false)
+const pagoRef = ref()
+const modoPago = ref('cobrar')
+const aperturasPago = ref(0)
+
+function abrirPago (modo) {
+  modoPago.value = modo
+  aperturasPago.value++
+  pagoDialog.value = true
+}
+
+async function pagoGuardado () {
+  pagoDialog.value = false
+  detalleRef.value.actualizar(await PedidoService.get(detalle.value.id))
+  refrescar()
+  $q.notify({
+    type: 'positive',
+    message: modoPago.value === 'devolver' ? 'Devolución registrada.' : 'Pago registrado.',
+    position: 'top-right',
+    timeout: 1800
+  })
 }
 
 const accionDialog = ref(false)
@@ -430,6 +533,11 @@ async function ejecutar (accion) {
 .pedido-detalle {
   font-size: 12px;
   color: var(--app-ink-2);
+}
+
+.pedido-saldo {
+  font-weight: 600;
+  color: var(--q-warning);
 }
 
 .confirm-text {

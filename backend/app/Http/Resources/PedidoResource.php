@@ -32,6 +32,10 @@ class PedidoResource extends JsonResource
             'subtotal' => $this->subtotal,
             'descuento' => $this->descuento,
             'total' => $this->total,
+            // Cobrado neto (devoluciones restan) y lo que falta cobrar.
+            'pagado' => $this->when(($pagado = $this->pagadoCargado()) !== null, fn () => number_format($pagado, 2, '.', '')),
+            'saldo' => $this->when($pagado !== null, fn () => number_format((float) $this->total - $pagado, 2, '.', '')),
+            'pagos' => PagoResource::collection($this->whenLoaded('pagos')),
             'observacion' => $this->observacion,
             'items_count' => $this->whenCounted('items'),
             'items' => PedidoItemResource::collection($this->whenLoaded('items')),
@@ -42,6 +46,21 @@ class PedidoResource extends JsonResource
             'entregado_at' => $this->entregado_at?->toIso8601String(),
             'cancelado_at' => $this->cancelado_at?->toIso8601String(),
         ];
+    }
+
+    /**
+     * Lo pagado sin consultas extra: de los pagos cargados (detalle) o de la
+     * suma que trajo el listado (withSum). null si no se pidió ninguno.
+     */
+    private function pagadoCargado(): ?float
+    {
+        if ($this->relationLoaded('pagos')) {
+            return round((float) $this->pagos->sum('monto'), 2);
+        }
+
+        return array_key_exists('pagos_sum_monto', $this->getAttributes())
+            ? round((float) $this->pagos_sum_monto, 2)
+            : null;
     }
 
     /**

@@ -54,9 +54,20 @@ class Pedidos
             }
 
             $descuento = (float) ($datos['descuento'] ?? 0);
+            $total = round($subtotal - $descuento, 2);
+
+            // Un pendiente puede tener un adelanto: el total no puede quedar
+            // por debajo de lo ya cobrado (habría que devolver primero).
+            $pagado = $nuevo ? 0.0 : $pedido->pagado();
+            if ($total < $pagado) {
+                throw ValidationException::withMessages([
+                    'pedido.items' => 'El total quedaría por debajo de lo ya pagado (S/ '.number_format($pagado, 2).'): devolvé la diferencia primero.',
+                ]);
+            }
+
             $pedido->forceFill([
                 'subtotal' => round($subtotal, 2),
-                'total' => round($subtotal - $descuento, 2),
+                'total' => $total,
             ])->save();
 
             return $pedido;
@@ -112,6 +123,13 @@ class Pedidos
             $pedido = Pedido::query()->whereKey($pedido->id)->lockForUpdate()->firstOrFail();
             $this->exigirEstado($pedido, [Pedido::CONFIRMADO], 'marcar como entregado');
 
+            // No se entrega mercadería sin cobrar.
+            if (($saldo = $pedido->saldo()) > 0) {
+                throw ValidationException::withMessages([
+                    'estado' => 'Falta cobrar S/ '.number_format($saldo, 2).' antes de entregar.',
+                ])->status(409);
+            }
+
             $pedido->forceFill(['estado' => Pedido::ENTREGADO, 'entregado_at' => now()])->save();
 
             return $pedido;
@@ -128,6 +146,14 @@ class Pedidos
         return DB::transaction(function () use ($pedido, $usuario) {
             $pedido = Pedido::query()->whereKey($pedido->id)->lockForUpdate()->firstOrFail();
             $this->exigirEstado($pedido, [Pedido::PENDIENTE, Pedido::CONFIRMADO], 'cancelar');
+
+            // La plata se devuelve explícitamente (queda en la caja), no se
+            // "cancela" junto con el pedido.
+            if (($pagado = $pedido->pagado()) > 0) {
+                throw ValidationException::withMessages([
+                    'estado' => 'Tiene S/ '.number_format($pagado, 2).' cobrados: devolvé los pagos antes de cancelar.',
+                ])->status(409);
+            }
 
             if ($pedido->estado === Pedido::CONFIRMADO) {
                 $this->inventario->entrada(

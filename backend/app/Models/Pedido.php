@@ -65,6 +65,24 @@ class Pedido extends Model
         return $this->hasMany(MovimientoInventario::class);
     }
 
+    public function pagos(): HasMany
+    {
+        return $this->hasMany(Pago::class);
+    }
+
+    /**
+     * Lo cobrado neto (las devoluciones son pagos negativos).
+     */
+    public function pagado(): float
+    {
+        return round((float) $this->pagos()->sum('monto'), 2);
+    }
+
+    public function saldo(): float
+    {
+        return round((float) $this->total - $this->pagado(), 2);
+    }
+
     public function editable(): bool
     {
         return $this->estado === self::PENDIENTE;
