@@ -6,6 +6,8 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Passport\ClientRepository;
 use Laravel\Passport\Passport;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class SessionTest extends TestCase
@@ -28,6 +30,21 @@ class SessionTest extends TestCase
             ->assertJsonPath('user.username', 'admin')
             ->assertJsonPath('user.name', 'Cristian G.')
             ->assertJsonMissingPath('user.password');
+    }
+
+    public function test_user_incluye_roles_y_permisos_directos_y_heredados(): void
+    {
+        $user = User::factory()->create();
+        $rol = Role::create(['name' => 'Cajero']);
+        $rol->givePermissionTo(Permission::create(['name' => 'ver-ventas']));
+        $user->assignRole($rol);
+        $user->givePermissionTo(Permission::create(['name' => 'ver-reportes']));
+        Passport::actingAs($user);
+
+        $response = $this->getJson('/api/user')->assertOk()->assertJsonPath('roles', ['Cajero']);
+
+        $this->assertEqualsCanonicalizing(['ver-ventas', 'ver-reportes'], $response->json('permisos'));
+        $response->assertJsonMissingPath('user.roles');
     }
 
     public function test_logout_revoca_el_token_actual(): void

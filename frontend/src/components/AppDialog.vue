@@ -3,7 +3,7 @@
     v-model="model"
     :persistent="persistent"
   >
-    <AppCard class="app-dialog">
+    <AppCard :class="['app-dialog', `app-dialog--${size}`]">
       <div class="app-dialog__header">
         <h2 class="app-dialog__title">{{ title }}</h2>
 
@@ -50,6 +50,14 @@ defineProps({
   persistent: {
     type: Boolean,
     default: false
+  },
+
+  // md: confirmaciones y forms de pocos campos. lg: forms con varias
+  // secciones (ej. usuario: datos + roles + permisos).
+  size: {
+    type: String,
+    default: 'md',
+    validator: (value) => ['md', 'lg'].includes(value)
   }
 })
 
@@ -60,6 +68,13 @@ const model = defineModel()
 .app-dialog {
   width: 480px;
   max-width: 90vw;
+}
+
+// QDialog le pone max-width 560px a su contenido; sin pisarlo, `lg` quedaría
+// recortado igual que `md`.
+.app-dialog--lg {
+  width: 880px;
+  max-width: 94vw !important;
 }
 
 .app-dialog__header {

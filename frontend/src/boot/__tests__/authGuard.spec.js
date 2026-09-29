@@ -8,10 +8,16 @@ vi.mock('@/boot/axios', () => ({ api }))
 import { authGuard } from '@/boot/authGuard'
 import { useUserStore } from '@/stores/user-store'
 
-const USER_OK = { data: { user: { id: 1, name: 'Admin', username: 'admin', email: null }, roles: [], permisos: [] } }
+const USER_OK = { data: { user: { id: 1, name: 'Admin', username: 'admin', email: null }, roles: [], permisos: ['admin-roles'] } }
 
-function ruta (path) {
-  return { path, fullPath: path }
+const notify = vi.hoisted(() => vi.fn())
+vi.mock('quasar', async (importOriginal) => {
+  const real = await importOriginal()
+  return { ...real, Notify: { create: notify } }
+})
+
+function ruta (path, meta = {}) {
+  return { path, fullPath: path, meta }
 }
 
 beforeEach(() => {
@@ -53,5 +59,26 @@ describe('authGuard', () => {
     api.get.mockResolvedValue(USER_OK)
 
     expect(await authGuard(ruta('/login'))).toEqual({ path: '/' })
+  })
+})
+
+describe('authGuard — permisos por ruta (meta.permiso)', () => {
+  beforeEach(() => {
+    notify.mockReset()
+    Cookies.set('token', 'Bearer tok', { path: '/' })
+    api.get.mockResolvedValue(USER_OK)
+  })
+
+  it('con el permiso de la ruta deja pasar', async () => {
+    expect(await authGuard(ruta('/roles', { permiso: 'admin-roles' }))).toBeUndefined()
+  })
+
+  it('sin el permiso de la ruta avisa y manda al inicio', async () => {
+    expect(await authGuard(ruta('/permisos', { permiso: 'admin-permisos' }))).toEqual({ path: '/' })
+    expect(notify).toHaveBeenCalledWith(expect.objectContaining({ type: 'negative' }))
+  })
+
+  it('una ruta sin meta.permiso sólo exige sesión', async () => {
+    expect(await authGuard(ruta('/pedidos'))).toBeUndefined()
   })
 })

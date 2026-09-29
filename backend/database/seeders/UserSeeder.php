@@ -9,7 +9,7 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        User::firstOrCreate(
+        $admin = User::firstOrCreate(
             ['username' => 'admin'],
             [
                 'name' => 'Administrador',
@@ -18,7 +18,7 @@ class UserSeeder extends Seeder
             ],
         );
 
-        User::firstOrCreate(
+        $prueba = User::firstOrCreate(
             ['email' => 'password@gmail.com'],
             [
                 'name' => 'Usuario de Prueba',
@@ -27,5 +27,8 @@ class UserSeeder extends Seeder
                 'active' => true,
             ],
         );
+
+        $admin->assignRole('Administrador');
+        $prueba->assignRole('Administrador');
     }
 }

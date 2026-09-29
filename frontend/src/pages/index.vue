@@ -100,6 +100,33 @@
           />
         </nav>
 
+        <template v-if="['usuarios.index', 'roles.index', 'permisos.index'].some((p) => userStore.hasPermission(p))">
+          <div class="app-drawer__section">Seguridad</div>
+
+          <nav class="app-drawer__nav">
+            <AppNavItem
+              v-if="userStore.hasPermission('usuarios.index')"
+              to="/usuarios"
+              icon="group"
+              label="Usuarios"
+            />
+
+            <AppNavItem
+              v-if="userStore.hasPermission('roles.index')"
+              to="/roles"
+              icon="badge"
+              label="Roles"
+            />
+
+            <AppNavItem
+              v-if="userStore.hasPermission('permisos.index')"
+              to="/permisos"
+              icon="key"
+              label="Permisos"
+            />
+          </nav>
+        </template>
+
         <div class="app-drawer__user">
           <div class="app-avatar">{{ userStore.initials }}</div>
           <div class="app-drawer__userText">
@@ -259,6 +286,12 @@ function toggleDrawer () {
   display: flex;
   flex-direction: column;
   gap: 3px;
+}
+
+// Una sección que viene después de otra lista necesita aire arriba; la
+// primera no, ya la separa la marca.
+.app-drawer__nav + .app-drawer__section {
+  margin-top: 22px;
 }
 
 .app-drawer__user {

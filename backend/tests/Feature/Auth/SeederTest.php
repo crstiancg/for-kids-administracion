@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\User;
 use Database\Seeders\ClientTokenSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -46,6 +47,20 @@ class SeederTest extends TestCase
             'password' => 'password',
             'scope' => '',
         ])->assertOk();
+    }
+
+    public function test_el_seeder_da_rol_administrador_con_todos_los_permisos_de_rutas(): void
+    {
+        $this->seed();
+
+        foreach (['admin', 'password'] as $username) {
+            $user = User::where('username', $username)->first();
+            $this->assertTrue($user->hasRole('Administrador'));
+            // El Administrador recibe todos los permisos de rutas.
+            foreach (['roles.index', 'roles.store', 'permisos.update', 'usuarios.toggle-active'] as $permiso) {
+                $this->assertTrue($user->hasPermissionTo($permiso), $permiso);
+            }
+        }
     }
 
     public function test_el_seeder_es_idempotente(): void

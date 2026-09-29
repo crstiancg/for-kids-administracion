@@ -1,5 +1,5 @@
 import { defineBoot } from '#q-app'
-import { Cookies } from 'quasar'
+import { Cookies, Notify } from 'quasar'
 import { useUserStore } from '@/stores/user-store'
 
 /**
@@ -28,6 +28,20 @@ export async function authGuard (to) {
   }
 
   if (to.path === '/login') return { path: '/' }
+
+  // Equivalente al permisosGuard de la referencia: cada página declara el
+  // permiso que exige con definePage({ meta: { permiso } }). Esconder la
+  // pantalla es comodidad; la autorización real la hace la API con 403.
+  const permiso = to.meta?.permiso
+  if (permiso && !userStore.hasPermission(permiso)) {
+    Notify.create({
+      type: 'negative',
+      message: 'No tenés permiso para acceder a este módulo.',
+      position: 'top-right',
+      timeout: 3000
+    })
+    return { path: '/' }
+  }
 }
 
 export default defineBoot(({ router }) => {

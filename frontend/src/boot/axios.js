@@ -1,6 +1,8 @@
 import { defineBoot } from '#q-app'
 import axios from 'axios'
 import { Cookies, Notify } from 'quasar'
+import { client } from 'laravel-precognition-vue'
+import { axiosAdapter } from 'laravel-precognition/axios'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_APP_API_URL,
@@ -13,6 +15,11 @@ api.interceptors.request.use((config) => {
   if (token) config.headers.Authorization = token
   return config
 })
+
+// Los forms con useForm() validan contra la API con esta misma instancia, así
+// les llegan el baseURL y el token. En precognition v2 es useHttpClient; el
+// client.use(api) de sistema-botica es de la v0.x y ya no existe.
+client.useHttpClient(axiosAdapter(api))
 
 export default defineBoot(({ app, router }) => {
   api.interceptors.response.use(

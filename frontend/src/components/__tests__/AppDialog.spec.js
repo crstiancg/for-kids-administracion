@@ -53,3 +53,15 @@ describe('AppDialog — mismo lenguaje visual en todos lados', () => {
     expect(wrapper.emitted('update:modelValue')[0]).toEqual([false])
   })
 })
+
+describe('AppDialog — tamaños', () => {
+  it('por default es el tamaño md', async () => {
+    await mountDialog()
+    expect(document.querySelector('.app-dialog').classList).toContain('app-dialog--md')
+  })
+
+  it('size="lg" es para formularios con varias secciones', async () => {
+    await mountDialog({ size: 'lg' })
+    expect(document.querySelector('.app-dialog').classList).toContain('app-dialog--lg')
+  })
+})

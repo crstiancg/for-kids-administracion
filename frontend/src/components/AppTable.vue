@@ -7,9 +7,12 @@
       :columns="columns"
       :row-key="rowKey"
       :selection="selection"
+      :loading="loading"
       flat
       hide-bottom
+      binary-state-sort
       class="app-table__table"
+      @request="onTableRequest"
     >
       <template
         v-for="(_, name) in forwardedSlots"
@@ -39,7 +42,7 @@
       class="app-table__pagination"
     >
       <div class="app-table__paginationInfo">
-        Mostrando <strong>{{ rangeStart }}–{{ rangeEnd }}</strong> de <strong>{{ rows.length }}</strong>
+        Mostrando <strong>{{ rangeStart }}–{{ rangeEnd }}</strong> de <strong>{{ totalRows }}</strong>
       </div>
 
       <div class="app-table__paginationControls">
@@ -119,8 +122,21 @@ const props = defineProps({
   noDataLabel: {
     type: String,
     default: 'No hay resultados para mostrar.'
+  },
+
+  loading: {
+    type: Boolean,
+    default: false
+  },
+
+  // Sólo en modo servidor: el término de búsqueda que viaja en `request`.
+  filter: {
+    type: String,
+    default: ''
   }
 })
+
+const emit = defineEmits(['request'])
 
 // v-model con default: quien use la tabla sólo declara `rows`/`columns` si
 // no le importa controlar página o selección desde afuera. Quien sí
@@ -144,7 +160,12 @@ const forwardedSlots = computed(() => {
   return rest
 })
 
-const totalPages = computed(() => Math.max(1, Math.ceil(props.rows.length / paginationModel.value.rowsPerPage)))
+// Modo servidor con la misma convención que QTable: si la paginación trae
+// `rowsNumber`, las filas son sólo la página actual y el total lo sabe la API.
+const serverSide = computed(() => paginationModel.value.rowsNumber !== undefined)
+const totalRows = computed(() => (serverSide.value ? paginationModel.value.rowsNumber : props.rows.length))
+
+const totalPages = computed(() => Math.max(1, Math.ceil(totalRows.value / paginationModel.value.rowsPerPage)))
 
 // Ventana de páginas: primera, última, la actual y una vecina de cada lado,
 // con "…" en los huecos. Sin esto, 10.000 filas a 8 por página son 1.250
@@ -174,22 +195,51 @@ const pageItems = computed(() => {
 
   return items
 })
-const rangeStart = computed(() => (props.rows.length === 0 ? 0 : (paginationModel.value.page - 1) * paginationModel.value.rowsPerPage + 1))
-const rangeEnd = computed(() => Math.min(paginationModel.value.page * paginationModel.value.rowsPerPage, props.rows.length))
+const rangeStart = computed(() => (totalRows.value === 0 ? 0 : (paginationModel.value.page - 1) * paginationModel.value.rowsPerPage + 1))
+const rangeEnd = computed(() => Math.min(paginationModel.value.page * paginationModel.value.rowsPerPage, totalRows.value))
+
+function requestPage (pagination) {
+  emit('request', { pagination, filter: props.filter })
+}
 
 // QTable no re-slice las filas si sólo mutás `pagination.value.page`: guarda
 // una copia interna del objeto y sólo la actualiza cuando la referencia
 // cambia (confirmado en la doc de QTable). Por eso ir a una página SIEMPRE
 // reemplaza el objeto entero en vez de tocar una propiedad suelta.
 function goToPage (page) {
+  // En modo servidor la página nueva la trae el padre desde la API; la
+  // paginación se actualiza cuando llega la respuesta, no antes.
+  if (serverSide.value) {
+    requestPage({ ...paginationModel.value, page })
+    return
+  }
   paginationModel.value = { ...paginationModel.value, page }
 }
 
-// Si filtrar/buscar deja menos páginas de las que tenías, sin esto quedás
-// mirando una página vacía en vez de volver a la primera.
-watch(() => props.rows, () => {
-  goToPage(1)
+/** Vuelve a pedir la página actual; el padre lo llama tras crear/editar/borrar. */
+function requestServerInteraction () {
+  requestPage({ ...paginationModel.value })
+}
+
+// En modo servidor QTable emite `request` al ordenar por una columna en vez
+// de ordenar local; se reenvía con el filtro actual.
+function onTableRequest ({ pagination }) {
+  requestPage(pagination)
+}
+
+watch(() => props.filter, () => {
+  if (serverSide.value) requestPage({ ...paginationModel.value, page: 1 })
 })
+
+// Si filtrar/buscar deja menos páginas de las que tenías, sin esto quedás
+// mirando una página vacía en vez de volver a la primera. Sólo en modo
+// cliente: en modo servidor las filas nuevas SON la respuesta al pedido de
+// una página, y resetear dispararía otro pedido en bucle.
+watch(() => props.rows, () => {
+  if (!serverSide.value) goToPage(1)
+})
+
+defineExpose({ requestServerInteraction })
 </script>
 
 <style lang="scss" scoped>

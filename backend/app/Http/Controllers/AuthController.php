@@ -12,10 +12,18 @@ use Illuminate\Http\Response;
  */
 class AuthController extends Controller
 {
+    /**
+     * Mismo contrato que muni-asis-sitra / sistema-botica: `permisos` junta los
+     * directos del usuario y los heredados de sus roles, sin repetidos.
+     */
     public function user(Request $request): JsonResponse
     {
+        $user = $request->user();
+
         return response()->json([
-            'user' => $request->user(),
+            'user' => $user->makeHidden(['roles', 'permissions']),
+            'roles' => $user->getRoleNames(),
+            'permisos' => $user->getAllPermissions()->pluck('name')->unique()->values(),
         ]);
     }
 

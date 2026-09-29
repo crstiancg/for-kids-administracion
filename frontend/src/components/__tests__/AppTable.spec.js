@@ -98,3 +98,67 @@ describe('AppTable — paginación con muchas páginas (10.000 filas)', () => {
     expect(wrapper.text()).toContain('Fila 10000')
   })
 })
+
+// Modo servidor: con `rowsNumber` en la paginación (misma convención que
+// QTable) las filas son sólo la página actual y paginar/ordenar/buscar se
+// le pide al padre con `request`, que va a la API (patrón sistema-botica).
+describe('AppTable — modo servidor', () => {
+  function mountServer (props = {}) {
+    return mount(AppTable, {
+      props: {
+        rows: buildRows(10),
+        columns: COLUMNS,
+        pagination: { page: 1, rowsPerPage: 10, rowsNumber: 45, sortBy: 'id', descending: false },
+        ...props
+      }
+    })
+  }
+
+  it('el total y las páginas salen de rowsNumber, no de las filas cargadas', () => {
+    const wrapper = mountServer()
+
+    expect(wrapper.find('.app-table__paginationInfo').text()).toBe('Mostrando 1–10 de 45')
+    expect(wrapper.findAll('.app-table__pageNumber').map((el) => el.text())).toContain('5')
+  })
+
+  it('muestra todas las filas recibidas sin recortarlas', () => {
+    expect(mountServer().text()).toContain('Fila 10')
+  })
+
+  it('cambiar de página pide los datos al padre en vez de paginar local', async () => {
+    const wrapper = mountServer({ filter: 'ab' })
+
+    await wrapper.findAll('.app-table__pageNumber').find((el) => el.text() === '2').trigger('click')
+
+    const [payload] = wrapper.emitted('request').at(-1)
+    expect(payload.pagination).toMatchObject({ page: 2, rowsPerPage: 10, sortBy: 'id', descending: false })
+    expect(payload.filter).toBe('ab')
+  })
+
+  it('requestServerInteraction() pide la página actual (para refrescar tras guardar)', () => {
+    const wrapper = mountServer()
+
+    wrapper.vm.requestServerInteraction()
+
+    expect(wrapper.emitted('request').at(-1)[0].pagination.page).toBe(1)
+  })
+
+  it('cambiar el filtro vuelve a pedir desde la página 1', async () => {
+    const wrapper = mountServer({ pagination: { page: 3, rowsPerPage: 10, rowsNumber: 45 } })
+
+    await wrapper.setProps({ filter: 'nuevo' })
+
+    const [payload] = wrapper.emitted('request').at(-1)
+    expect(payload.pagination.page).toBe(1)
+    expect(payload.filter).toBe('nuevo')
+  })
+
+  it('recibir filas nuevas NO resetea la página (sería un bucle de requests)', async () => {
+    const wrapper = mountServer({ pagination: { page: 3, rowsPerPage: 10, rowsNumber: 45 } })
+
+    await wrapper.setProps({ rows: buildRows(5) })
+
+    expect(wrapper.emitted('request')).toBeUndefined()
+    expect(wrapper.find('.app-table__pageNumber--active').text()).toBe('3')
+  })
+})
