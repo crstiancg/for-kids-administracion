@@ -15,7 +15,7 @@ use LogicException;
  * Se crea sólo a través de App\Services\Inventario, que mueve el stock de la
  * variante en la misma transacción.
  */
-#[Fillable(['grupo', 'variante_id', 'tipo', 'cantidad', 'stock_resultante', 'costo_unitario', 'motivo', 'referencia', 'observacion', 'user_id'])]
+#[Fillable(['grupo', 'variante_id', 'pedido_id', 'tipo', 'cantidad', 'stock_resultante', 'costo_unitario', 'motivo', 'referencia', 'observacion', 'user_id'])]
 class MovimientoInventario extends Model
 {
     public const ENTRADA = 'entrada';
@@ -35,6 +35,23 @@ class MovimientoInventario extends Model
     ];
 
     public const MOTIVO_CONTEO = 'conteo';
+
+    /** Los registra App\Services\Pedidos, no se eligen a mano. */
+    public const MOTIVO_VENTA = 'venta';
+
+    public const MOTIVO_DEVOLUCION_VENTA = 'devolucion_venta';
+
+    /** Etiqueta de cualquier motivo, para mostrar. */
+    public static function etiquetaMotivo(?string $motivo): ?string
+    {
+        return match ($motivo) {
+            null => null,
+            self::MOTIVO_CONTEO => 'Conteo físico',
+            self::MOTIVO_VENTA => 'Venta',
+            self::MOTIVO_DEVOLUCION_VENTA => 'Pedido cancelado',
+            default => self::MOTIVOS_SALIDA[$motivo] ?? $motivo,
+        };
+    }
 
     // Sólo created_at: un movimiento no se actualiza.
     public const UPDATED_AT = null;
@@ -58,6 +75,11 @@ class MovimientoInventario extends Model
     public function variante(): BelongsTo
     {
         return $this->belongsTo(Variante::class);
+    }
+
+    public function pedido(): BelongsTo
+    {
+        return $this->belongsTo(Pedido::class);
     }
 
     public function usuario(): BelongsTo

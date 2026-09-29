@@ -72,7 +72,7 @@ class InventarioController extends Controller
     public function variantes(Request $request): JsonResponse
     {
         $query = Variante::query()
-            ->with(['producto:id,nombre', 'talla:id,nombre,orden', 'color:id,nombre,hexadecimal'])
+            ->with(['producto:id,nombre,precio', 'talla:id,nombre,orden', 'color:id,nombre,hexadecimal'])
             ->whereHas('producto', fn (Builder $p) => $p->where('activo', true));
 
         if ($request->filled('search')) {

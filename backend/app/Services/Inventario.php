@@ -22,42 +22,55 @@ use Illuminate\Validation\ValidationException;
 class Inventario
 {
     /**
-     * Compra o reposición. Recalcula el costo promedio ponderado.
+     * Compra o reposición (o la devolución de una venta cancelada, con
+     * `$motivo`). Recalcula el costo promedio ponderado.
      *
-     * @param  array<int, array{variante_id: int, cantidad: int, costo_unitario: numeric-string|float}>  $lineas
+     * `$extra` son columnas adicionales del movimiento (p. ej. `pedido_id`).
+     *
+     * @param  array<int, array{variante_id: int, cantidad: int, costo_unitario: numeric-string|float|null}>  $lineas
+     * @param  array<string, mixed>  $extra
      * @return Collection<int, MovimientoInventario>
      */
-    public function entrada(array $lineas, ?string $referencia, ?string $observacion, ?User $usuario): Collection
+    public function entrada(array $lineas, ?string $referencia, ?string $observacion, ?User $usuario, ?string $motivo = null, array $extra = []): Collection
     {
-        return $this->registrar($lineas, function (Variante $variante, array $linea) {
+        return $this->registrar($lineas, function (Variante $variante, array $linea) use ($motivo, $extra) {
             $cantidad = (int) $linea['cantidad'];
-            $costo = (float) $linea['costo_unitario'];
+            // null = costo desconocido (p. ej. devolver una venta de stock que
+            // entró por un ajuste): no se toca el promedio. Un 0 lo arrastraría
+            // hacia abajo sin que nadie haya comprado nada gratis.
+            $costo = isset($linea['costo_unitario']) ? (float) $linea['costo_unitario'] : null;
 
             // Promedio ponderado. Con stock en 0 (o sin costo previo) el
             // costo anterior no pesa: vale el de esta compra.
-            $stock = max(0, $variante->stock);
-            $anterior = $variante->costo_promedio !== null ? (float) $variante->costo_promedio : null;
-            $variante->costo_promedio = $anterior === null || $stock === 0
-                ? $costo
-                : round((($stock * $anterior) + ($cantidad * $costo)) / ($stock + $cantidad), 4);
+            if ($costo !== null) {
+                $stock = max(0, $variante->stock);
+                $anterior = $variante->costo_promedio !== null ? (float) $variante->costo_promedio : null;
+                $variante->costo_promedio = $anterior === null || $stock === 0
+                    ? $costo
+                    : round((($stock * $anterior) + ($cantidad * $costo)) / ($stock + $cantidad), 4);
+            }
 
             return [
+                ...$extra,
                 'tipo' => MovimientoInventario::ENTRADA,
                 'cantidad' => $cantidad,
                 'costo_unitario' => $costo,
+                'motivo' => $motivo,
             ];
         }, $referencia, $observacion, $usuario);
     }
 
     /**
-     * Merma, daño, regalo… Nunca deja el stock en negativo.
+     * Merma, daño, regalo, venta… Nunca deja el stock en negativo.
      *
      * @param  array<int, array{variante_id: int, cantidad: int}>  $lineas
+     * @param  array<string, mixed>  $extra  columnas adicionales del movimiento (p. ej. `pedido_id`)
      * @return Collection<int, MovimientoInventario>
      */
-    public function salida(array $lineas, string $motivo, ?string $referencia, ?string $observacion, ?User $usuario): Collection
+    public function salida(array $lineas, string $motivo, ?string $referencia, ?string $observacion, ?User $usuario, array $extra = []): Collection
     {
         return $this->registrar($lineas, fn (Variante $variante, array $linea) => [
+            ...$extra,
             'tipo' => MovimientoInventario::SALIDA,
             'cantidad' => -(int) $linea['cantidad'],
             'motivo' => $motivo,

@@ -44,7 +44,15 @@ return [
         'tallas.index' => ['productos.store', 'productos.update'],
         'colores.index' => ['productos.store', 'productos.update'],
         // Los formularios de inventario buscan la variante de cada línea.
-        'inventario.variantes' => ['inventario.entradas', 'inventario.salidas', 'inventario.ajustes'],
+        // Los formularios de pedidos buscan variantes y clientes.
+        'inventario.variantes' => ['inventario.entradas', 'inventario.salidas', 'inventario.ajustes', 'pedidos.store', 'pedidos.update'],
+        'clientes.index' => ['pedidos.store', 'pedidos.update'],
+        'clientes.show' => ['clientes.update'],
+        // Autocompletar con RENIEC/SUNAT es parte de cargar un cliente.
+        'clientes.consultar-documento' => ['clientes.store', 'clientes.update'],
+        // A diferencia de los catálogos, quien ve la lista de pedidos puede
+        // abrir su detalle (un vendedor necesita ver qué lleva cada pedido).
+        'pedidos.show' => ['pedidos.index', 'pedidos.update'],
     ],
 
     // Para la descripción que genera permisos:sync: "Roles · Crear".
@@ -57,6 +65,8 @@ return [
         'tallas' => 'Tallas',
         'productos' => 'Productos',
         'inventario' => 'Inventario',
+        'clientes' => 'Clientes',
+        'pedidos' => 'Pedidos',
     ],
 
     'acciones' => [
@@ -73,6 +83,10 @@ return [
         'salidas' => 'Registrar salidas',
         'ajustes' => 'Ajustar por conteo',
         'variantes' => 'Buscar variantes',
+        'consultar-documento' => 'Consultar DNI/RUC',
+        'confirmar' => 'Confirmar (descuenta stock)',
+        'entregar' => 'Marcar entregado',
+        'cancelar' => 'Cancelar',
     ],
 
 ];

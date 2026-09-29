@@ -78,14 +78,28 @@
           />
 
           <AppNavItem
+            v-if="userStore.hasPermission('pedidos.index')"
             to="/pedidos"
             icon="receipt_long"
             label="Pedidos"
           >
-            <template #badge>
-              <AppBadge variant="brand">14</AppBadge>
+            <!-- Pedidos pendientes reales (antes, un 14 fijo de la maqueta). -->
+            <template
+              v-if="pendientes"
+              #badge
+            >
+              <AppBadge variant="brand">
+                {{ pendientes }}
+              </AppBadge>
             </template>
           </AppNavItem>
+
+          <AppNavItem
+            v-if="userStore.hasPermission('clientes.index')"
+            to="/clientes"
+            icon="groups"
+            label="Clientes"
+          />
 
           <AppNavItem
             v-if="userStore.hasPermission('productos.index')"
@@ -186,15 +200,31 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user-store'
 import AppBrandMark from '@/components/AppBrandMark.vue'
 import AppNavItem from '@/components/AppNavItem.vue'
 import AppBadge from '@/components/AppBadge.vue'
+import PedidoService from '@/services/PedidoService'
 
+const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+
+// Pedidos pendientes para el badge del menú. Se recalcula al navegar: basta
+// para que se entere al volver de confirmar o cancelar uno.
+const pendientes = ref(0)
+async function contarPendientes () {
+  if (!userStore.hasPermission('pedidos.index')) return
+  try {
+    const { total } = await PedidoService.getData({ params: { estado: 'pendiente', rowsPerPage: 1 } })
+    pendientes.value = total ?? 0
+  } catch {
+    // Un badge no vale un error en pantalla.
+  }
+}
+watch(() => route.path, contarPendientes, { immediate: true })
 
 async function onLogout () {
   await userStore.logout()

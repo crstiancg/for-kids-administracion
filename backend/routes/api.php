@@ -2,8 +2,10 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoriaController;
+use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\ColorController;
 use App\Http\Controllers\InventarioController;
+use App\Http\Controllers\PedidoController;
 use App\Http\Controllers\PermisoController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\RolController;
@@ -43,7 +45,19 @@ Route::middleware(['auth:api', AutorizarPorRuta::ALIAS])->group(function () {
         Route::post('inventario/entradas', [InventarioController::class, 'entradas'])->name('inventario.entradas');
         Route::post('inventario/salidas', [InventarioController::class, 'salidas'])->name('inventario.salidas');
         Route::post('inventario/ajustes', [InventarioController::class, 'ajustes'])->name('inventario.ajustes');
+
+        // Va antes del resource: si no, {cliente} captura "consultar-documento".
+        Route::get('clientes/consultar-documento', [ClienteController::class, 'consultarDocumento'])
+            ->name('clientes.consultar-documento');
+        Route::apiResource('clientes', ClienteController::class);
+
+        // Sin destroy: un pedido es historial de ventas, se cancela.
+        Route::apiResource('pedidos', PedidoController::class)->except(['destroy']);
     });
+
+    Route::post('pedidos/{pedido}/confirmar', [PedidoController::class, 'confirmar'])->name('pedidos.confirmar');
+    Route::post('pedidos/{pedido}/entregar', [PedidoController::class, 'entregar'])->name('pedidos.entregar');
+    Route::post('pedidos/{pedido}/cancelar', [PedidoController::class, 'cancelar'])->name('pedidos.cancelar');
 
     Route::get('inventario', [InventarioController::class, 'index'])->name('inventario.index');
     Route::get('inventario/variantes', [InventarioController::class, 'variantes'])->name('inventario.variantes');

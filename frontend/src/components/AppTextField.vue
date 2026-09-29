@@ -191,7 +191,7 @@ function checkCapsLock (event) {
 }
 
 // Mismo radio y borde que el resto de los campos del sistema (buscador,
-// PedidosForm): el outlined default de Quasar viene en 4px y con un borde
+// selects de los forms): el outlined default de Quasar viene en 4px y con un borde
 // negro fijo que en oscuro no se ve.
 .app-field__control {
   :deep(.q-field__control) {

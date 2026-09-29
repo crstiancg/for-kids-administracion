@@ -25,9 +25,8 @@ class MovimientoResource extends JsonResource
             'stock_resultante' => $this->stock_resultante,
             'costo_unitario' => $this->costo_unitario,
             'motivo' => $this->motivo,
-            'motivo_label' => $this->motivo === MovimientoInventario::MOTIVO_CONTEO
-                ? 'Conteo físico'
-                : (MovimientoInventario::MOTIVOS_SALIDA[$this->motivo] ?? null),
+            'motivo_label' => MovimientoInventario::etiquetaMotivo($this->motivo),
+            'pedido_id' => $this->pedido_id,
             'referencia' => $this->referencia,
             'observacion' => $this->observacion,
             'fecha' => $this->created_at?->toIso8601String(),
