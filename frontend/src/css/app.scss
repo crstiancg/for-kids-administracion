@@ -117,3 +117,27 @@ body.body--dark {
     padding: 20px 16px;
   }
 }
+
+// ── Ticket de venta (ticketera térmica de 80 mm) ──
+// El ticket se monta en <body> (ImpresionTicket.vue) y al imprimir es lo único
+// que sale: el resto de la app se oculta. Global y no scoped porque tiene que
+// apuntar a los hermanos del ticket dentro de <body>.
+.ticket-impresion {
+  display: none;
+}
+
+@media print {
+  // La ticketera corta a medida: sin márgenes del navegador y alto libre.
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  body > *:not(.ticket-impresion) {
+    display: none !important;
+  }
+
+  .ticket-impresion {
+    display: block;
+  }
+}

@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use App\Models\Variante;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Una variante vista desde inventario: qué es (producto, talla, color, SKU) y
@@ -17,6 +18,14 @@ class VarianteStockResource extends JsonResource
     /**
      * @return array<string, mixed>
      */
+    private function miniatura(): ?string
+    {
+        $archivo = $this->portada
+            ?? ($this->relationLoaded('producto') && $this->producto->relationLoaded('portada') ? $this->producto->portada : null);
+
+        return $archivo ? Storage::disk('public')->url($archivo->miniatura ?? $archivo->ruta) : null;
+    }
+
     public function toArray(Request $request): array
     {
         return [
@@ -33,6 +42,8 @@ class VarianteStockResource extends JsonResource
             'producto' => $this->whenLoaded('producto', fn () => $this->producto->only(['id', 'nombre'])),
             'talla' => $this->whenLoaded('talla', fn () => $this->talla->nombre),
             'color' => $this->whenLoaded('color', fn () => $this->color->only(['nombre', 'hexadecimal'])),
+            // Foto del color o, si no tiene, la del producto (punto de venta).
+            'miniatura_url' => $this->when($this->relationLoaded('portada'), fn () => $this->miniatura()),
         ];
     }
 }

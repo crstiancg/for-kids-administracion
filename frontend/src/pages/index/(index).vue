@@ -231,15 +231,6 @@
         </div>
       </q-card-section>
     </AppCard>
-
-    <div class="showcase__row">
-      <AppButton
-        variant="primary"
-        label="Ir a la segunda página"
-        icon="arrow_forward"
-        to="/second"
-      />
-    </div>
   </q-page>
 </template>
 

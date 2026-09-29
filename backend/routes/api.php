@@ -12,6 +12,7 @@ use App\Http\Controllers\PermisoController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\RolController;
 use App\Http\Controllers\TallaController;
+use App\Http\Controllers\VentaController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\AutorizarPorRuta;
 use Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests;
@@ -64,6 +65,11 @@ Route::middleware(['auth:api', AutorizarPorRuta::ALIAS])->group(function () {
         Route::post('cajas/movimientos', [CajaController::class, 'movimientos'])->name('cajas.movimientos');
         Route::post('cajas/{caja}/cerrar', [CajaController::class, 'cerrar'])->name('cajas.cerrar');
     });
+
+    // Punto de venta: pedido + confirmación + cobro + entrega en una sola
+    // transacción (reusa los servicios de pedidos y caja).
+    Route::post('ventas', [VentaController::class, 'store'])->name('ventas.store');
+    Route::get('ventas/catalogo', [VentaController::class, 'catalogo'])->name('ventas.catalogo');
 
     // "actual" va antes de {caja}: si no, la captura como id.
     Route::get('cajas/actual', [CajaController::class, 'actual'])->name('cajas.actual');

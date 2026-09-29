@@ -175,6 +175,13 @@
 
       <template #actions>
         <AppButton
+          v-if="detalle && ['confirmado', 'entregado'].includes(detalle.estado)"
+          variant="tertiary"
+          label="Ticket"
+          icon="print"
+          @click="impresionRef.imprimir(detalle)"
+        />
+        <AppButton
           v-if="puede('cancelar')"
           variant="tertiary"
           label="Cancelar pedido"
@@ -228,6 +235,8 @@
         </AppButton>
       </template>
     </AppDialog>
+
+    <ImpresionTicket ref="impresionRef" />
 
     <!-- ── Cobrar / devolver ── -->
     <AppDialog
@@ -303,6 +312,7 @@ import AppFilterPill from '@/components/AppFilterPill.vue'
 import AppPageHeader from '@/components/AppPageHeader.vue'
 import AppTable from '@/components/AppTable.vue'
 import PagoForm from '@/modules/Caja/PagoForm.vue'
+import ImpresionTicket from '@/modules/Ventas/ImpresionTicket.vue'
 import PedidoService from '@/services/PedidoService'
 import { useUserStore } from '@/stores/user-store'
 import { formatearPrecio } from '@/utils/moneda'
@@ -417,6 +427,8 @@ function guardado (pedido) {
   $q.notify({ type: 'positive', message: `Pedido ${pedido?.codigo ?? ''} guardado.`, position: 'top-right', timeout: 1500 })
   if (pedido) ver(pedido)
 }
+
+const impresionRef = ref()
 
 // ── Detalle y acciones ──
 const detalleDialog = ref(false)

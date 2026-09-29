@@ -37,24 +37,27 @@ return [
         'colores.show' => ['colores.update'],
         'categorias.show' => ['categorias.update'],
         // El form de categorías lista las demás para elegir la categoría padre.
-        'categorias.index' => ['categorias.store', 'categorias.update', 'productos.store', 'productos.update', 'productos.index'],
+        'categorias.index' => ['categorias.store', 'categorias.update', 'productos.store', 'productos.update', 'productos.index', 'ventas.store'],
         'tallas.show' => ['tallas.update'],
         'productos.show' => ['productos.update'],
         // El form de productos elige talla y color de cada variante.
-        'tallas.index' => ['productos.store', 'productos.update'],
-        'colores.index' => ['productos.store', 'productos.update'],
+        // El form de productos y los filtros del punto de venta.
+        'tallas.index' => ['productos.store', 'productos.update', 'ventas.store'],
+        'colores.index' => ['productos.store', 'productos.update', 'ventas.store'],
+        'ventas.catalogo' => ['ventas.store'],
         // Los formularios de inventario buscan la variante de cada línea.
         // Los formularios de pedidos buscan variantes y clientes.
-        'inventario.variantes' => ['inventario.entradas', 'inventario.salidas', 'inventario.ajustes', 'pedidos.store', 'pedidos.update'],
-        'clientes.index' => ['pedidos.store', 'pedidos.update'],
+        'inventario.variantes' => ['inventario.entradas', 'inventario.salidas', 'inventario.ajustes', 'pedidos.store', 'pedidos.update', 'ventas.store'],
+        'clientes.index' => ['pedidos.store', 'pedidos.update', 'ventas.store'],
         'clientes.show' => ['clientes.update'],
         // Autocompletar con RENIEC/SUNAT es parte de cargar un cliente.
         'clientes.consultar-documento' => ['clientes.store', 'clientes.update'],
         // A diferencia de los catálogos, quien ve la lista de pedidos puede
-        // abrir su detalle (un vendedor necesita ver qué lleva cada pedido).
-        'pedidos.show' => ['pedidos.index', 'pedidos.update'],
-        // Cobrar, devolver o mover caja necesita saber si hay una abierta.
-        'cajas.actual' => ['pedidos.pagos', 'pedidos.devoluciones', 'cajas.abrir', 'cajas.cerrar', 'cajas.movimientos', 'cajas.index'],
+        // abrir su detalle (un vendedor necesita ver qué lleva cada pedido),
+        // y el punto de venta lo lee para reimprimir el ticket.
+        'pedidos.show' => ['pedidos.index', 'pedidos.update', 'ventas.store'],
+        // Cobrar, devolver, mover caja o vender necesita saber si hay una abierta.
+        'cajas.actual' => ['pedidos.pagos', 'pedidos.devoluciones', 'cajas.abrir', 'cajas.cerrar', 'cajas.movimientos', 'cajas.index', 'ventas.store'],
         'cajas.show' => ['cajas.index', 'cajas.cerrar'],
     ],
 
@@ -71,6 +74,7 @@ return [
         'clientes' => 'Clientes',
         'pedidos' => 'Pedidos',
         'cajas' => 'Caja',
+        'ventas' => 'Punto de venta',
     ],
 
     'acciones' => [
@@ -97,6 +101,7 @@ return [
         'abrir' => 'Abrir caja',
         'cerrar' => 'Cerrar caja (arqueo)',
         'movimientos' => 'Registrar ingresos y egresos',
+        'catalogo' => 'Ver catálogo',
     ],
 
 ];

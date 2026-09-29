@@ -9,7 +9,7 @@
           round
           icon="menu"
           aria-label="Abrir navegación"
-          class="app-toolbar__menu lt-md"
+          :class="['app-toolbar__menu', { 'lt-md': !pantallaCompleta }]"
           @click="toggleDrawer"
         />
 
@@ -57,7 +57,8 @@
          lo dibujamos nosotros con el token, que sí cambia de tema. -->
     <q-drawer
       v-model="drawerOpen"
-      show-if-above
+      :show-if-above="!pantallaCompleta"
+      :overlay="pantallaCompleta"
       :width="248"
       class="app-drawer"
     >
@@ -75,6 +76,13 @@
             to="/"
             icon="dashboard"
             label="Dashboard"
+          />
+
+          <AppNavItem
+            v-if="userStore.hasPermission('ventas.store')"
+            to="/pos"
+            icon="point_of_sale"
+            label="Punto de venta"
           />
 
           <AppNavItem
@@ -104,7 +112,7 @@
           <AppNavItem
             v-if="userStore.hasPermission('cajas.actual')"
             to="/caja"
-            icon="point_of_sale"
+            icon="account_balance_wallet"
             label="Caja"
           />
 
@@ -120,12 +128,6 @@
             to="/inventario"
             icon="warehouse"
             label="Inventario"
-          />
-
-          <AppNavItem
-            to="/second"
-            icon="widgets"
-            label="Segunda página"
           />
         </nav>
 
@@ -207,7 +209,8 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useQuasar } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user-store'
 import AppBrandMark from '@/components/AppBrandMark.vue'
@@ -215,6 +218,7 @@ import AppNavItem from '@/components/AppNavItem.vue'
 import AppBadge from '@/components/AppBadge.vue'
 import PedidoService from '@/services/PedidoService'
 
+const $q = useQuasar()
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
@@ -239,6 +243,19 @@ async function onLogout () {
 }
 
 const drawerOpen = ref(false)
+
+// Pantallas que necesitan todo el ancho (el punto de venta) lo piden con
+// `definePage({ meta: { pantallaCompleta: true } })`: el menú se esconde al
+// entrar y vuelve al salir. Se abre igual con el botón, encima del contenido.
+const pantallaCompleta = computed(() => Boolean(route.meta.pantallaCompleta))
+watch(pantallaCompleta, (completa) => {
+  drawerOpen.value = completa ? false : $q.screen.gt.sm
+})
+
+// Al elegir otra pantalla desde el menú abierto encima, se cierra solo.
+watch(() => route.path, () => {
+  if (pantallaCompleta.value) drawerOpen.value = false
+})
 const search = ref('')
 
 function toggleDrawer () {

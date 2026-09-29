@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 /**
  * Un producto en una talla y un color: lo que efectivamente tiene SKU y stock.
@@ -50,5 +51,13 @@ class Variante extends Model
     public function archivos(): MorphMany
     {
         return $this->morphMany(Archivo::class, 'archivable')->orderBy('orden');
+    }
+
+    /**
+     * La primera foto del color (orden 0), para el punto de venta.
+     */
+    public function portada(): MorphOne
+    {
+        return $this->morphOne(Archivo::class, 'archivable')->ofMany('orden', 'min');
     }
 }

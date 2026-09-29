@@ -72,8 +72,13 @@ class InventarioController extends Controller
     public function variantes(Request $request): JsonResponse
     {
         $query = Variante::query()
-            ->with(['producto:id,nombre,precio', 'talla:id,nombre,orden', 'color:id,nombre,hexadecimal'])
+            ->with(['producto:id,nombre,precio', 'producto.portada', 'portada', 'talla:id,nombre,orden', 'color:id,nombre,hexadecimal'])
             ->whereHas('producto', fn (Builder $p) => $p->where('activo', true));
+
+        // Lector de código de barras: el SKU exacto (se guardan en mayúsculas).
+        if ($request->filled('sku')) {
+            $query->where('variantes.sku', mb_strtoupper(trim($request->input('sku'))));
+        }
 
         if ($request->filled('search')) {
             $term = '%'.$request->input('search').'%';
