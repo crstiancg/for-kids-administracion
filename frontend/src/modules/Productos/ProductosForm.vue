@@ -183,7 +183,7 @@
             <span>SKU</span>
             <span>Precio</span>
             <span>Fotos</span>
-            <span class="text-right">Stock</span>
+            <span class="text-right">{{ hayNuevas ? 'Stock / inicial' : 'Stock' }}</span>
             <span />
           </div>
 
@@ -322,7 +322,48 @@
                 >{{ variante.archivos.length }}</span>
               </button>
 
-              <span class="producto-form__stock text-mono">{{ variante.stock }}</span>
+              <!-- Existente: su stock real (se mueve desde Inventario). Nueva:
+                   las unidades con que entra y, si difiere, su costo. -->
+              <span
+                v-if="variante.id"
+                class="producto-form__stock text-mono"
+              >{{ variante.stock }}</span>
+              <div
+                v-else
+                class="producto-form__inicial"
+              >
+                <q-input
+                  v-model="variante.stock_inicial"
+                  :aria-label="`Stock inicial de la variante ${i + 1}`"
+                  placeholder="0"
+                  type="number"
+                  min="0"
+                  step="1"
+                  dense
+                  outlined
+                  hide-bottom-space
+                  no-error-icon
+                  :error="Boolean(errorDe(i, 'stock_inicial'))"
+                  class="producto-form__control"
+                />
+                <q-input
+                  v-if="Number(variante.stock_inicial) > 0"
+                  v-model="variante.costo_unitario"
+                  :aria-label="`Costo unitario de la variante ${i + 1}`"
+                  :placeholder="form.producto.costo_compra || 'costo'"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  dense
+                  outlined
+                  hide-bottom-space
+                  no-error-icon
+                  :error="Boolean(errorDe(i, 'costo_unitario'))"
+                  class="producto-form__control producto-form__costo"
+                >
+                  <q-tooltip>Costo propio (vacío = el costo de compra general)</q-tooltip>
+                </q-input>
+              </div>
 
               <!-- Con stock o con historial de inventario no se quita: se
                    perdería mercadería o su trazabilidad (el backend también
@@ -343,6 +384,13 @@
                 </q-tooltip>
               </q-btn>
             </div>
+
+            <p
+              v-if="errorDe(i, 'stock_inicial') || errorDe(i, 'costo_unitario')"
+              class="producto-form__error"
+            >
+              {{ errorDe(i, 'stock_inicial') || errorDe(i, 'costo_unitario') }}
+            </p>
 
             <div
               v-if="abierta === variante.uid"
@@ -365,8 +413,74 @@
         </div>
       </div>
 
+      <div
+        v-if="hayNuevas"
+        class="producto-form__stockInicial"
+      >
+        <div class="producto-form__stockTitulo">
+          <q-icon
+            name="inventory"
+            size="16px"
+          />
+          Stock inicial de las variantes nuevas
+          <span class="producto-form__hint">(entra al inventario como "Alta de producto")</span>
+        </div>
+        <div class="producto-form__row">
+          <AppTextField
+            v-model="form.producto.costo_compra"
+            label="Costo de compra por unidad (S/)"
+            icon="payments"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+            class="producto-form__grow"
+            :error="form.errors[`${PATH}.costo_compra`]"
+          />
+          <AppTextField
+            v-model="form.producto.referencia_compra"
+            label="Factura o guía (opcional)"
+            icon="receipt"
+            maxlength="60"
+            placeholder="F001-2345"
+            class="producto-form__grow"
+            :error="form.errors[`${PATH}.referencia_compra`]"
+          />
+        </div>
+        <div class="producto-form__rellenar">
+          <span>Poner</span>
+          <q-input
+            v-model="cantidadParaTodas"
+            aria-label="Unidades para todas las variantes nuevas"
+            type="number"
+            min="0"
+            step="1"
+            dense
+            outlined
+            hide-bottom-space
+            class="producto-form__control producto-form__rellenarInput"
+            @keydown.enter.prevent="ponerATodas"
+          />
+          <span>unidades a todas las nuevas</span>
+          <AppButton
+            variant="tertiary"
+            label="Aplicar"
+            :disable="cantidadParaTodas === ''"
+            @click="ponerATodas"
+          />
+          <span
+            v-if="unidadesIniciales"
+            class="producto-form__hint"
+          >
+            Total: {{ unidadesIniciales }} unid.<template v-if="Number(form.producto.costo_compra)">
+              · {{ formatearPrecio(costoTotal) }}
+            </template>
+          </span>
+        </div>
+      </div>
+
       <p
-        v-else
+        v-else-if="!form.producto.variantes.length"
         class="producto-form__vacio"
       >
         Todavía no hay variantes. Elegí tallas y colores arriba y tocá “Agregar combinaciones”.
@@ -651,6 +765,23 @@ function quitar (i) {
   form.producto.variantes.splice(i, 1)
 }
 
+// ── Stock inicial (sólo variantes nuevas) ──
+const hayNuevas = computed(() => form.producto.variantes.some((v) => !v.id))
+const cantidadParaTodas = ref('')
+
+function ponerATodas () {
+  if (cantidadParaTodas.value === '') return
+  form.producto.variantes.filter((v) => !v.id).forEach((v) => { v.stock_inicial = String(cantidadParaTodas.value) })
+}
+
+const unidadesIniciales = computed(() =>
+  form.producto.variantes.filter((v) => !v.id).reduce((s, v) => s + (Number(v.stock_inicial) || 0), 0))
+
+// Con el costo propio de cada variante o, si no tiene, el general.
+const costoTotal = computed(() => form.producto.variantes
+  .filter((v) => !v.id && Number(v.stock_inicial) > 0)
+  .reduce((s, v) => s + Number(v.stock_inicial) * Number(v.costo_unitario || form.producto.costo_compra || 0), 0))
+
 // ── Fotos por variante ──
 // La variante con el panel de fotos abierto (una a la vez).
 const abierta = ref(null)
@@ -765,6 +896,8 @@ onMounted(async () => {
       descripcion: descripcion ?? '',
       precio: String(precio),
       activo,
+      costo_compra: '',
+      referencia_compra: '',
       archivos: archivos.map(aFoto),
       variantes: variantes.map((v) => nuevaVariante({
         id: v.id,
@@ -948,7 +1081,7 @@ defineExpose({ form, submit })
 
 .producto-form__fila {
   display: grid;
-  grid-template-columns: 1fr 1.4fr 1.8fr 1.1fr 48px 48px 36px;
+  grid-template-columns: 1fr 1.4fr 1.8fr 1.1fr 48px 92px 36px;
   align-items: start;
   gap: 8px;
 
@@ -962,6 +1095,49 @@ defineExpose({ form, submit })
 .producto-form__sku :deep(input) {
   font-family: $font-mono;
   text-transform: uppercase;
+}
+
+.producto-form__inicial {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.producto-form__costo :deep(input) {
+  font-size: 11.5px;
+}
+
+.producto-form__stockInicial {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px dashed rgba($primary, 0.45);
+  border-radius: 12px;
+  background: rgba($primary, 0.03);
+}
+
+.producto-form__stockTitulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--app-ink);
+}
+
+.producto-form__rellenar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--app-ink-2);
+}
+
+.producto-form__rellenarInput {
+  width: 80px;
 }
 
 .producto-form__stock {

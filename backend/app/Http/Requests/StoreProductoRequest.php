@@ -91,6 +91,10 @@ class StoreProductoRequest extends FormRequest
             'producto.precio' => ['required', 'numeric', 'min:0', 'max:99999999.99', 'decimal:0,2'],
             'producto.activo' => ['required', 'boolean'],
             'producto.variantes' => ['required', 'array', 'min:1', $this->noQuitaVariantesConStock($producto)],
+            // Stock inicial de las variantes nuevas: el costo general de la
+            // compra (ajustable por variante) y la factura o guía.
+            'producto.costo_compra' => ['nullable', 'numeric', 'min:0', 'max:99999999.99', 'decimal:0,2'],
+            'producto.referencia_compra' => ['nullable', 'string', 'max:60'],
             ...$this->reglasArchivos('producto.archivos'),
         ];
 
@@ -114,6 +118,8 @@ class StoreProductoRequest extends FormRequest
                 Rule::unique('variantes', 'sku')->where(fn ($q) => $q->where('producto_id', '!=', $producto?->getKey() ?? 0)),
             ];
             $rules["producto.variantes.{$i}.precio"] = ['nullable', 'numeric', 'min:0', 'max:99999999.99', 'decimal:0,2'];
+            $rules["producto.variantes.{$i}.stock_inicial"] = ['nullable', 'integer', 'min:0', 'max:100000', $this->stockInicialValido($i)];
+            $rules["producto.variantes.{$i}.costo_unitario"] = ['nullable', 'numeric', 'min:0', 'max:99999999.99', 'decimal:0,2'];
             $rules["producto.variantes.{$i}.medidas"] = ['nullable', 'array', 'max:12', $this->nombresDeMedidas()];
             $rules["producto.variantes.{$i}.medidas.*"] = ['numeric', 'min:0', 'max:999.9', 'decimal:0,1'];
             $rules = [...$rules, ...$this->reglasArchivos("producto.variantes.{$i}.archivos")];
@@ -187,6 +193,30 @@ class StoreProductoRequest extends FormRequest
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
             ->all();
+    }
+
+    /**
+     * Sólo las variantes nuevas reciben stock desde acá (las existentes se
+     * mueven en Inventario), y sin costo no entra: sin costo no hay forma de
+     * calcular la ganancia de esas unidades.
+     */
+    private function stockInicialValido(int|string $i): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail) use ($i) {
+            if ((int) $value <= 0) {
+                return;
+            }
+            if ($this->input("producto.variantes.{$i}.id")) {
+                $fail('El stock de una variante que ya existe se carga desde Inventario.');
+
+                return;
+            }
+
+            $costo = $this->input("producto.variantes.{$i}.costo_unitario") ?? $this->input('producto.costo_compra');
+            if ($costo === null || $costo === '') {
+                $fail('Falta el costo de compra de estas unidades.');
+            }
+        };
     }
 
     private function nombresDeMedidas(): Closure
@@ -319,6 +349,10 @@ class StoreProductoRequest extends FormRequest
             'producto.variantes.*.color_id' => 'color',
             'producto.variantes.*.sku' => 'SKU',
             'producto.variantes.*.precio' => 'precio',
+            'producto.variantes.*.stock_inicial' => 'stock inicial',
+            'producto.variantes.*.costo_unitario' => 'costo',
+            'producto.costo_compra' => 'costo de compra',
+            'producto.referencia_compra' => 'factura o guía',
             'producto.variantes.*.medidas.*' => 'medida',
             'producto.archivos.*.archivo' => 'foto',
             'producto.variantes.*.archivos.*.archivo' => 'foto',

@@ -41,6 +41,9 @@ class MovimientoInventario extends Model
 
     public const MOTIVO_DEVOLUCION_VENTA = 'devolucion_venta';
 
+    /** Stock inicial cargado al crear el producto (o una variante nueva). */
+    public const MOTIVO_ALTA_PRODUCTO = 'alta_producto';
+
     /** Etiqueta de cualquier motivo, para mostrar. */
     public static function etiquetaMotivo(?string $motivo): ?string
     {
@@ -49,6 +52,7 @@ class MovimientoInventario extends Model
             self::MOTIVO_CONTEO => 'Conteo físico',
             self::MOTIVO_VENTA => 'Venta',
             self::MOTIVO_DEVOLUCION_VENTA => 'Pedido cancelado',
+            self::MOTIVO_ALTA_PRODUCTO => 'Alta de producto',
             default => self::MOTIVOS_SALIDA[$motivo] ?? $motivo,
         };
     }

@@ -6,8 +6,11 @@ use App\Http\Requests\StoreProductoRequest;
 use App\Http\Resources\ProductoResource;
 use App\Models\Archivo;
 use App\Models\Categoria;
+use App\Models\MovimientoInventario;
 use App\Models\Producto;
+use App\Models\Variante;
 use App\Services\ArchivosService;
+use App\Services\Inventario;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,7 +19,7 @@ use Illuminate\Support\Facades\DB;
 
 class ProductoController extends Controller
 {
-    public function __construct(private ArchivosService $archivos) {}
+    public function __construct(private ArchivosService $archivos, private Inventario $inventario) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -57,7 +60,7 @@ class ProductoController extends Controller
         $producto = DB::transaction(function () use ($request) {
             $datos = $request->validated('producto');
             $producto = Producto::create($datos);
-            $this->guardarRelaciones($producto, $datos);
+            $this->guardarRelaciones($producto, $datos, $request);
 
             return $producto;
         });
@@ -75,7 +78,7 @@ class ProductoController extends Controller
         DB::transaction(function () use ($request, $producto) {
             $datos = $request->validated('producto');
             $producto->update($datos);
-            $this->guardarRelaciones($producto, $datos);
+            $this->guardarRelaciones($producto, $datos, $request);
         });
 
         return response()->json($this->conDetalle($producto->refresh()));
@@ -112,24 +115,68 @@ class ProductoController extends Controller
     /**
      * @param  array<string, mixed>  $datos  producto validado
      */
-    private function guardarRelaciones(Producto $producto, array $datos): void
+    private function guardarRelaciones(Producto $producto, array $datos, StoreProductoRequest $request): void
     {
         // Antes de tocar nada: una foto puede venir de una variante que se
         // quita en este mismo guardado.
         $fuentes = $this->fuentesDeFotos($datos);
 
         $this->archivos->sincronizar($producto, $datos['archivos'] ?? [], "productos/{$producto->id}", $fuentes);
-        $this->sincronizarVariantes($producto, $datos['variantes'], $fuentes);
+        $variantes = $this->sincronizarVariantes($producto, $datos['variantes'], $fuentes);
+        $this->registrarStockInicial($variantes, $datos, $request);
+    }
+
+    /**
+     * El stock inicial de las variantes NUEVAS entra como una entrada de
+     * inventario ("Alta de producto"), en la misma transacción: el stock
+     * sigue saliendo sólo del libro de movimientos (historial y costo
+     * promedio incluidos). Las variantes que ya existían se mueven desde
+     * Inventario.
+     *
+     * @param  array<int, Variante>  $variantes  en el orden del payload
+     * @param  array<string, mixed>  $datos
+     */
+    private function registrarStockInicial(array $variantes, array $datos, StoreProductoRequest $request): void
+    {
+        $lineas = [];
+        foreach (array_values($datos['variantes']) as $i => $fila) {
+            $cantidad = (int) ($fila['stock_inicial'] ?? 0);
+            if (! empty($fila['id']) || $cantidad <= 0) {
+                continue;
+            }
+            $lineas[] = [
+                'variante_id' => $variantes[$i]->id,
+                'cantidad' => $cantidad,
+                // El de la variante o, si no se ajustó, el general del producto.
+                'costo_unitario' => $fila['costo_unitario'] ?? $datos['costo_compra'],
+            ];
+        }
+
+        if ($lineas === []) {
+            return;
+        }
+
+        $this->inventario->entrada(
+            $lineas,
+            $datos['referencia_compra'] ?? null,
+            null,
+            $request->user(),
+            MovimientoInventario::MOTIVO_ALTA_PRODUCTO,
+        );
     }
 
     /**
      * Las filas con id se actualizan, las sin id se crean y las que ya no
      * vienen se borran (el request ya garantizó que ninguna tenía stock).
      *
+     * Devuelve las variantes guardadas en el orden del payload (para
+     * registrarles el stock inicial).
+     *
      * @param  array<int, array<string, mixed>>  $variantes
      * @param  array<int, Archivo>  $fuentes
+     * @return array<int, Variante>
      */
-    private function sincronizarVariantes(Producto $producto, array $variantes, array $fuentes): void
+    private function sincronizarVariantes(Producto $producto, array $variantes, array $fuentes): array
     {
         $conservadas = collect($variantes)->pluck('id')->filter()->all();
 
@@ -146,7 +193,8 @@ class ProductoController extends Controller
             $variante->update(['sku' => "~{$variante->id}"]);
         }
 
-        foreach ($variantes as $datos) {
+        $guardadas = [];
+        foreach (array_values($variantes) as $datos) {
             $campos = collect($datos)->only(['talla_id', 'color_id', 'sku', 'precio'])->all();
             // En multipart llegan como texto: se guardan como número.
             $campos['medidas'] = array_map('floatval', $datos['medidas'] ?? []) ?: null;
@@ -156,7 +204,10 @@ class ProductoController extends Controller
                 : tap($existentes[$datos['id']])->update($campos);
 
             $this->archivos->sincronizar($variante, $datos['archivos'] ?? [], "productos/{$producto->id}/variantes", $fuentes);
+            $guardadas[] = $variante;
         }
+
+        return $guardadas;
     }
 
     /**

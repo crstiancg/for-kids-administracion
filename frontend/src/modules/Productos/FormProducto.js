@@ -19,6 +19,10 @@ export default function formProducto (editando = false) {
       descripcion: '',
       precio: '',
       activo: true,
+      // Stock inicial de las variantes nuevas: entra como una entrada de
+      // inventario ("Alta de producto") con este costo (ajustable por variante).
+      costo_compra: '',
+      referencia_compra: '',
       // Fotos: { id, url, nombre } guardadas o { archivo: File, url, nombre } nuevas.
       archivos: [],
       variantes: []
@@ -46,6 +50,10 @@ export function nuevaVariante (datos = {}) {
     sku: '',
     precio: '',
     stock: 0,
+    // Sólo variantes nuevas: unidades que entran al crearla y su costo si
+    // difiere del general de la compra.
+    stock_inicial: '',
+    costo_unitario: '',
     con_movimientos: false,
     medidas: {},
     archivos: [],
