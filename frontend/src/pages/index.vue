@@ -136,6 +136,13 @@
             icon="warehouse"
             label="Inventario"
           />
+
+          <AppNavItem
+            v-if="userStore.hasPermission('etiquetas.imprimir')"
+            to="/etiquetas"
+            icon="mdi-barcode"
+            label="Etiquetas"
+          />
         </nav>
 
         <template v-if="['categorias.index', 'colores.index', 'tallas.index'].some((p) => userStore.hasPermission(p))">

@@ -81,7 +81,9 @@ class VentaController extends Controller
             $term = '%'.$request->input('search').'%';
             $query->where(fn (Builder $q) => $q
                 ->where('productos.nombre', 'like', $term)
-                ->orWhereHas('variantes', fn (Builder $v) => $v->where('sku', 'like', $term)));
+                ->orWhereHas('variantes', fn (Builder $v) => $v
+                    ->where('sku', 'like', $term)
+                    ->orWhere('codigo_barras', 'like', $term)));
         }
 
         match ($request->input('order_by', 'vendidos')) {

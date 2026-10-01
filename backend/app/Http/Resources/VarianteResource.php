@@ -22,6 +22,8 @@ class VarianteResource extends JsonResource
             'talla' => $this->whenLoaded('talla', fn () => $this->talla->only(['id', 'nombre', 'orden'])),
             'color' => $this->whenLoaded('color', fn () => $this->color->only(['id', 'nombre', 'hexadecimal'])),
             'sku' => $this->sku,
+            // Lo asigna el sistema al crear: el form sólo lo muestra.
+            'codigo_barras' => $this->codigo_barras,
             // null = usa el precio base del producto.
             'precio' => $this->precio,
             'stock' => $this->stock,

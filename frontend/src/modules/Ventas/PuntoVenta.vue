@@ -304,8 +304,9 @@ async function escaneado (codigo) {
   const sku = codigo.trim().toUpperCase()
   ultimoCodigo.value = sku
 
-  // Lo que ya está en el carrito suma uno sin consultar.
-  const enCarrito = pos.items.find((i) => i.sku === sku)
+  // Lo que ya está en el carrito suma uno sin consultar (por la etiqueta
+  // EAN-13 o por el SKU).
+  const enCarrito = pos.items.find((i) => i.codigo_barras === sku || i.sku === sku)
   if (enCarrito) {
     if (pos.cambiarCantidad(enCarrito.variante_id, 1) === 'ok') {
       pos.seleccionado = enCarrito.variante_id

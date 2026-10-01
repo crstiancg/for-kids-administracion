@@ -111,6 +111,19 @@
           class="text-right"
         >
           <q-btn
+            v-if="userStore.hasPermission('etiquetas.imprimir')"
+            flat
+            dense
+            round
+            icon="mdi-barcode"
+            size="sm"
+            color="grey-7"
+            :to="{ path: '/etiquetas', query: { producto: props.row.id } }"
+            :aria-label="`Imprimir etiquetas de ${props.row.nombre}`"
+          >
+            <q-tooltip>Imprimir etiquetas</q-tooltip>
+          </q-btn>
+          <q-btn
             v-if="userStore.hasPermission('productos.update')"
             flat
             dense

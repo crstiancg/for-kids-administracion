@@ -122,8 +122,54 @@ body.body--dark {
 // El ticket se monta en <body> (ImpresionTicket.vue) y al imprimir es lo único
 // que sale: el resto de la app se oculta. Global y no scoped porque tiene que
 // apuntar a los hermanos del ticket dentro de <body>.
-.ticket-impresion {
+.ticket-impresion,
+.etiquetas-impresion {
   display: none;
+}
+
+// ── Etiquetas con código de barras (ImpresionEtiquetas.vue) ──
+// Mismo mecanismo que el ticket. El rollo usa el @page de 80 mm de abajo; las
+// hojas A4 piden su propia página con nombre (named page), así un formato no
+// le cambia el tamaño de papel al otro.
+@page etiquetas-a4 {
+  size: A4;
+  margin: 0;
+}
+
+.etiquetas-impresion--a4 {
+  page: etiquetas-a4;
+}
+
+.etiquetas-hoja {
+  display: grid;
+  box-sizing: border-box;
+}
+
+.etiquetas-impresion--a4 .etiquetas-hoja {
+  width: 210mm;
+  // 296 y no 297: un redondeo del navegador hacia arriba agregaría una hoja
+  // en blanco después de cada una.
+  height: 296mm;
+  break-after: page;
+
+  &:last-child {
+    break-after: auto;
+  }
+}
+
+// 72 mm útiles centrados en los 80 del rollo.
+.etiquetas-impresion--rollo .etiquetas-hoja {
+  width: 72mm;
+  margin: 0 auto;
+}
+
+.etiquetas-celda {
+  break-inside: avoid;
+}
+
+// En el rollo se cortan a mano: una línea punteada marca dónde.
+.etiquetas-impresion--rollo .etiquetas-celda {
+  border-bottom: 0.2mm dashed #000000;
 }
 
 @media print {
@@ -133,11 +179,18 @@ body.body--dark {
     margin: 0;
   }
 
-  body > *:not(.ticket-impresion) {
+  body > *:not(.ticket-impresion):not(.etiquetas-impresion) {
     display: none !important;
   }
 
-  .ticket-impresion {
+  .ticket-impresion,
+  .etiquetas-impresion {
     display: block;
+  }
+
+  // Sin esto Chrome omite los fondos blancos y algunos drivers aclaran el negro.
+  .etiquetas-impresion {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 }

@@ -56,6 +56,7 @@ class VarianteStockResource extends JsonResource
         return [
             'id' => $this->id,
             'sku' => $this->sku,
+            'codigo_barras' => $this->codigo_barras,
             'stock' => $this->stock,
             'costo_promedio' => $this->costo_promedio,
             // Precio de venta HOY (con la mejor oferta vigente) y el de lista.

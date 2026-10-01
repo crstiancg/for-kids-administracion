@@ -75,15 +75,20 @@ class InventarioController extends Controller
             ->with(['producto:id,nombre,precio,categoria_id', 'producto.portada', 'portada', 'talla:id,nombre,orden', 'color:id,nombre,hexadecimal'])
             ->whereHas('producto', fn (Builder $p) => $p->where('activo', true));
 
-        // Lector de código de barras: el SKU exacto (se guardan en mayúsculas).
+        // Lector de código de barras: el código de la etiqueta (EAN-13) o el
+        // SKU exacto (se guardan en mayúsculas), así siguen sirviendo los dos.
         if ($request->filled('sku')) {
-            $query->where('variantes.sku', mb_strtoupper(trim($request->input('sku'))));
+            $codigo = mb_strtoupper(trim($request->input('sku')));
+            $query->where(fn (Builder $q) => $q
+                ->where('variantes.codigo_barras', $codigo)
+                ->orWhere('variantes.sku', $codigo));
         }
 
         if ($request->filled('search')) {
             $term = '%'.$request->input('search').'%';
             $query->where(fn (Builder $q) => $q
                 ->where('variantes.sku', 'like', $term)
+                ->orWhere('variantes.codigo_barras', 'like', $term)
                 ->orWhereHas('producto', fn (Builder $p) => $p->where('nombre', 'like', $term)));
         }
 

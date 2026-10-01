@@ -79,6 +79,7 @@ return [
         'pedidos' => 'Pedidos',
         'cajas' => 'Caja',
         'ventas' => 'Punto de venta',
+        'etiquetas' => 'Etiquetas',
     ],
 
     'acciones' => [
@@ -106,6 +107,7 @@ return [
         'cerrar' => 'Cerrar caja (arqueo)',
         'movimientos' => 'Registrar ingresos y egresos',
         'catalogo' => 'Ver catálogo',
+        'imprimir' => 'Imprimir códigos de barras',
     ],
 
 ];

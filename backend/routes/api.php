@@ -5,6 +5,7 @@ use App\Http\Controllers\CajaController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\ColorController;
+use App\Http\Controllers\EtiquetaController;
 use App\Http\Controllers\InventarioController;
 use App\Http\Controllers\OfertaController;
 use App\Http\Controllers\PagoController;
@@ -84,6 +85,9 @@ Route::middleware(['auth:api', AutorizarPorRuta::ALIAS])->group(function () {
 
     Route::get('inventario', [InventarioController::class, 'index'])->name('inventario.index');
     Route::get('inventario/variantes', [InventarioController::class, 'variantes'])->name('inventario.variantes');
+
+    // Las etiquetas se arman e imprimen en el navegador: acá sólo se buscan.
+    Route::get('etiquetas', [EtiquetaController::class, 'index'])->name('etiquetas.imprimir');
 
     Route::patch('usuarios/{usuario}/toggle-active', [UserController::class, 'toggleActive'])
         ->name('usuarios.toggle-active');

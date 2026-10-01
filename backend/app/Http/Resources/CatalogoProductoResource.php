@@ -58,6 +58,7 @@ class CatalogoProductoResource extends JsonResource
             'variantes' => $variantes->map(fn ($x) => [
                 'id' => $x['variante']->id,
                 'sku' => $x['variante']->sku,
+                'codigo_barras' => $x['variante']->codigo_barras,
                 'stock' => $x['variante']->stock,
                 // Precio de venta HOY (con oferta, si hay) y el de lista (el
                 // de la variante o el base del producto), para tacharlo.
