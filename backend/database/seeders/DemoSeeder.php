@@ -19,7 +19,8 @@ use Illuminate\Database\Seeder;
  *     php artisan db:seed --class=DemoSeeder
  *
  * Idempotente: el stock inicial entra sólo para las variantes que crea, así
- * que correrlo dos veces no duplica nada.
+ * que correrlo dos veces no duplica nada. Al final carga 30 días de ventas
+ * de prueba (DemoVentasSeeder).
  */
 class DemoSeeder extends Seeder
 {
@@ -106,5 +107,7 @@ class DemoSeeder extends Seeder
                 ['tipo_documento' => $tipo, 'numero_documento' => $numero, 'telefono' => $telefono],
             );
         }
+
+        $this->call(DemoVentasSeeder::class);
     }
 }
