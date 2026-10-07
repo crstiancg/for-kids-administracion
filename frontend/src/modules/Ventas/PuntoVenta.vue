@@ -199,6 +199,17 @@
         class="pos__auto"
       />
       <template #actions>
+        <!-- Sin API: abre WhatsApp con el ticket escrito; al número del
+             cliente si lo tiene, si no se elige el contacto. -->
+        <AppButton
+          v-if="venta"
+          variant="secondary"
+          label="WhatsApp"
+          icon="mdi-whatsapp"
+          :href="linkWhatsApp(venta.cliente?.telefono, textoTicket(venta))"
+          target="_blank"
+          rel="noopener"
+        />
         <AppButton
           variant="secondary"
           label="Imprimir ticket"
@@ -227,6 +238,7 @@ import { useLectorCodigo } from '@/composables/useLectorCodigo'
 import InventarioService from '@/services/InventarioService'
 import { lineaDesdeCatalogo, lineaDesdeEscaner, usePosStore } from '@/stores/pos-store'
 import { beepError, beepOk } from '@/utils/sonido'
+import { linkWhatsApp, textoTicket } from '@/utils/whatsapp'
 import CarritoPanel from './CarritoPanel.vue'
 import CatalogoFiltros from './CatalogoFiltros.vue'
 import CatalogoGrid from './CatalogoGrid.vue'
