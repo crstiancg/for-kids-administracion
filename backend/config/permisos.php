@@ -18,8 +18,11 @@ return [
     'libres' => [
         'auth.user',
         'auth.logout',
-        // Cada bloque del tablero se filtra por el permiso de su dato.
+        // Cada bloque del tablero, cada grupo del buscador y cada aviso de
+        // la campana se filtran por el permiso de su dato.
         'dashboard',
+        'buscar',
+        'notificaciones',
     ],
 
     // Permisos que también habilitan otra ruta: "esta ruta se permite a

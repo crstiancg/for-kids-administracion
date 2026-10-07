@@ -303,6 +303,7 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
 import AppButton from '@/components/AppButton.vue'
 import AppChip from '@/components/AppChip.vue'
@@ -322,6 +323,7 @@ import { CANALES, ESTADOS } from './constantes'
 
 const $q = useQuasar()
 const userStore = useUserStore()
+const route = useRoute()
 
 const columns = [
   { name: 'codigo', label: 'Pedido', field: 'codigo', align: 'left', sortable: true },
@@ -440,6 +442,12 @@ function ver (pedido) {
   detalleId.value = pedido.id
   detalleDialog.value = true
 }
+
+// /pedidos?ver=12 abre ese pedido (lo usa el buscador del header). Se
+// observa la query: buscar otro pedido estando acá también lo abre.
+watch(() => route.query.ver, (id) => {
+  if (id && Number(id) > 0) ver({ id: Number(id) })
+}, { immediate: true })
 
 const REGLAS = {
   editar: { estados: ['pendiente'], permiso: 'pedidos.update' },

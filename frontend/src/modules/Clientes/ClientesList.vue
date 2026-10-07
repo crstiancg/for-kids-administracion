@@ -151,6 +151,7 @@
 
 <script setup>
 import { onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
 import AppButton from '@/components/AppButton.vue'
 import AppDialog from '@/components/AppDialog.vue'
@@ -180,8 +181,12 @@ const pagination = ref({ sortBy: 'nombre', descending: false, page: 1, rowsPerPa
 
 // El buscador escribe en `search`; a la tabla le llega `filter` recién cuando
 // se deja de tipear, para no pegarle a la API por cada tecla.
-const search = ref('')
-const filter = ref('')
+// /clientes?buscar=Rosa llega ya filtrado (lo usa el buscador del header).
+const route = useRoute()
+const search = ref(String(route.query.buscar ?? ''))
+const filter = ref(search.value.trim())
+// Buscar otro cliente desde el header estando acá: misma pantalla, otra query.
+watch(() => route.query.buscar, (valor) => { if (valor !== undefined) search.value = String(valor) })
 let searchTimer
 watch(search, (value) => {
   clearTimeout(searchTimer)

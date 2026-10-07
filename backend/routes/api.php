@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BuscarController;
 use App\Http\Controllers\CajaController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ClienteController;
@@ -8,6 +9,7 @@ use App\Http\Controllers\ColorController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EtiquetaController;
 use App\Http\Controllers\InventarioController;
+use App\Http\Controllers\NotificacionController;
 use App\Http\Controllers\OfertaController;
 use App\Http\Controllers\PagoController;
 use App\Http\Controllers\PedidoController;
@@ -32,6 +34,8 @@ Route::middleware(['auth:api', AutorizarPorRuta::ALIAS])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout');
     // Libre: cada bloque se arma sólo con el permiso de su dato.
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/buscar', BuscarController::class)->name('buscar');
+    Route::get('/notificaciones', NotificacionController::class)->name('notificaciones');
 
     Route::middleware(HandlePrecognitiveRequests::class)->group(function () {
         Route::apiResource('roles', RolController::class);
