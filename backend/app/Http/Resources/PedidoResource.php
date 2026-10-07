@@ -39,7 +39,11 @@ class PedidoResource extends JsonResource
             'observacion' => $this->observacion,
             'items_count' => $this->whenCounted('items'),
             'items' => PedidoItemResource::collection($this->whenLoaded('items')),
-            'ganancia' => $this->when($this->relationLoaded('items'), fn () => $this->ganancia()),
+            // La ganancia revela costos: sólo para quien ya los ve en inventario.
+            'ganancia' => $this->when(
+                $this->relationLoaded('items') && (bool) $request->user()?->can('inventario.index'),
+                fn () => $this->ganancia(),
+            ),
             'usuario' => $this->whenLoaded('usuario', fn () => $this->usuario?->only(['id', 'name'])),
             'fecha' => $this->created_at?->toIso8601String(),
             'confirmado_at' => $this->confirmado_at?->toIso8601String(),
