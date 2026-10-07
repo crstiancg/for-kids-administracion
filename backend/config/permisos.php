@@ -18,6 +18,8 @@ return [
     'libres' => [
         'auth.user',
         'auth.logout',
+        // Cada bloque del tablero se filtra por el permiso de su dato.
+        'dashboard',
     ],
 
     // Permisos que también habilitan otra ruta: "esta ruta se permite a

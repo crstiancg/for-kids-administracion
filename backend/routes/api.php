@@ -5,6 +5,7 @@ use App\Http\Controllers\CajaController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\ColorController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EtiquetaController;
 use App\Http\Controllers\InventarioController;
 use App\Http\Controllers\OfertaController;
@@ -28,6 +29,8 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth:api', AutorizarPorRuta::ALIAS])->group(function () {
     Route::get('/user', [AuthController::class, 'user'])->name('auth.user');
     Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout');
+    // Libre: cada bloque se arma sólo con el permiso de su dato.
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     Route::middleware(HandlePrecognitiveRequests::class)->group(function () {
         Route::apiResource('roles', RolController::class);
