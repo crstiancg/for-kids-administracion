@@ -88,7 +88,7 @@
           />
         </nav>
 
-        <template v-if="['ventas.store', 'cajas.actual', 'pedidos.index', 'clientes.index'].some((p) => userStore.hasPermission(p))">
+        <template v-if="['ventas.store', 'cajas.actual', 'pedidos.index', 'clientes.index', 'reportes.index'].some((p) => userStore.hasPermission(p))">
           <div class="app-drawer__section">Ventas</div>
 
           <nav class="app-drawer__nav">
@@ -128,6 +128,13 @@
               to="/clientes"
               icon="groups"
               label="Clientes"
+            />
+
+            <AppNavItem
+              v-if="userStore.hasPermission('reportes.index')"
+              to="/reportes"
+              icon="insights"
+              label="Reportes"
             />
           </nav>
         </template>

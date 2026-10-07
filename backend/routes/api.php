@@ -12,6 +12,7 @@ use App\Http\Controllers\OfertaController;
 use App\Http\Controllers\PagoController;
 use App\Http\Controllers\PedidoController;
 use App\Http\Controllers\PermisoController;
+use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\RolController;
 use App\Http\Controllers\TallaController;
@@ -88,6 +89,8 @@ Route::middleware(['auth:api', AutorizarPorRuta::ALIAS])->group(function () {
 
     Route::get('inventario', [InventarioController::class, 'index'])->name('inventario.index');
     Route::get('inventario/variantes', [InventarioController::class, 'variantes'])->name('inventario.variantes');
+
+    Route::get('reportes', ReporteController::class)->name('reportes.index');
 
     // Las etiquetas se arman e imprimen en el navegador: acá sólo se buscan.
     Route::get('etiquetas', [EtiquetaController::class, 'index'])->name('etiquetas.imprimir');
