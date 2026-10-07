@@ -55,21 +55,30 @@
          tema oscuro es invisible— y con la misma especificidad que nuestra
          regla, así que quién gana dependía del orden del bundle. El borde
          lo dibujamos nosotros con el token, que sí cambia de tema. -->
+    <!-- `:key`: cambiar `behavior` en caliente deja a QDrawer con su estado
+         interno de desktop en "cerrado" y al salir del POS no volvía. Al
+         recrearlo arranca limpio con show-if-above. -->
     <q-drawer
+      :key="pantallaCompleta ? 'flota' : 'fijo'"
       v-model="drawerOpen"
       :show-if-above="!pantallaCompleta"
-      :overlay="pantallaCompleta"
+      :behavior="pantallaCompleta ? 'mobile' : 'default'"
       :width="248"
       class="app-drawer"
     >
-      <div class="app-drawer__inner">
+      <!-- Click en un ítem: cierra el menú cuando está encima del contenido,
+           aunque sea la misma ruta (el watch de la ruta ahí no se entera). -->
+      <div
+        class="app-drawer__inner"
+        @click="cerrarSiFlota"
+      >
         <div class="app-brand">
           <AppBrandMark :size="32" />
           <span class="app-brand__name">FOR KIDS</span>
         </div>
 
-        <div class="app-drawer__section">General</div>
-
+        <!-- Agrupado por tarea del día, en el orden en que se usa: vender,
+             después la mercadería, y al final lo que se configura una vez. -->
         <nav class="app-drawer__nav">
           <AppNavItem
             exact
@@ -77,76 +86,88 @@
             icon="dashboard"
             label="Dashboard"
           />
-
-          <AppNavItem
-            v-if="userStore.hasPermission('ventas.store')"
-            to="/pos"
-            icon="point_of_sale"
-            label="Punto de venta"
-          />
-
-          <AppNavItem
-            v-if="userStore.hasPermission('pedidos.index')"
-            to="/pedidos"
-            icon="receipt_long"
-            label="Pedidos"
-          >
-            <!-- Pedidos pendientes reales (antes, un 14 fijo de la maqueta). -->
-            <template
-              v-if="pendientes"
-              #badge
-            >
-              <AppBadge variant="brand">
-                {{ pendientes }}
-              </AppBadge>
-            </template>
-          </AppNavItem>
-
-          <AppNavItem
-            v-if="userStore.hasPermission('clientes.index')"
-            to="/clientes"
-            icon="groups"
-            label="Clientes"
-          />
-
-          <AppNavItem
-            v-if="userStore.hasPermission('cajas.actual')"
-            to="/caja"
-            icon="account_balance_wallet"
-            label="Caja"
-          />
-
-          <AppNavItem
-            v-if="userStore.hasPermission('productos.index')"
-            to="/productos"
-            icon="inventory_2"
-            label="Productos"
-          />
-
-          <AppNavItem
-            v-if="userStore.hasPermission('ofertas.index')"
-            to="/ofertas"
-            icon="local_offer"
-            label="Ofertas"
-          />
-
-          <AppNavItem
-            v-if="userStore.hasPermission('inventario.index')"
-            to="/inventario"
-            icon="warehouse"
-            label="Inventario"
-          />
-
-          <AppNavItem
-            v-if="userStore.hasPermission('etiquetas.imprimir')"
-            to="/etiquetas"
-            icon="mdi-barcode"
-            label="Etiquetas"
-          />
         </nav>
 
+        <template v-if="['ventas.store', 'cajas.actual', 'pedidos.index', 'clientes.index'].some((p) => userStore.hasPermission(p))">
+          <div class="app-drawer__section">Ventas</div>
+
+          <nav class="app-drawer__nav">
+            <AppNavItem
+              v-if="userStore.hasPermission('ventas.store')"
+              to="/pos"
+              icon="point_of_sale"
+              label="Punto de venta"
+            />
+
+            <AppNavItem
+              v-if="userStore.hasPermission('cajas.actual')"
+              to="/caja"
+              icon="account_balance_wallet"
+              label="Caja"
+            />
+
+            <AppNavItem
+              v-if="userStore.hasPermission('pedidos.index')"
+              to="/pedidos"
+              icon="receipt_long"
+              label="Pedidos"
+            >
+              <!-- Pedidos pendientes reales (antes, un 14 fijo de la maqueta). -->
+              <template
+                v-if="pendientes"
+                #badge
+              >
+                <AppBadge variant="brand">
+                  {{ pendientes }}
+                </AppBadge>
+              </template>
+            </AppNavItem>
+
+            <AppNavItem
+              v-if="userStore.hasPermission('clientes.index')"
+              to="/clientes"
+              icon="groups"
+              label="Clientes"
+            />
+          </nav>
+        </template>
+
+        <template v-if="['productos.index', 'inventario.index', 'ofertas.index', 'etiquetas.imprimir'].some((p) => userStore.hasPermission(p))">
+          <div class="app-drawer__section">Mercadería</div>
+
+          <nav class="app-drawer__nav">
+            <AppNavItem
+              v-if="userStore.hasPermission('productos.index')"
+              to="/productos"
+              icon="inventory_2"
+              label="Productos"
+            />
+
+            <AppNavItem
+              v-if="userStore.hasPermission('inventario.index')"
+              to="/inventario"
+              icon="warehouse"
+              label="Inventario"
+            />
+
+            <AppNavItem
+              v-if="userStore.hasPermission('ofertas.index')"
+              to="/ofertas"
+              icon="local_offer"
+              label="Ofertas"
+            />
+
+            <AppNavItem
+              v-if="userStore.hasPermission('etiquetas.imprimir')"
+              to="/etiquetas"
+              icon="mdi-barcode"
+              label="Etiquetas"
+            />
+          </nav>
+        </template>
+
         <template v-if="['categorias.index', 'colores.index', 'tallas.index'].some((p) => userStore.hasPermission(p))">
-          <div class="app-drawer__section">Catálogos</div>
+          <div class="app-drawer__section">Configuración</div>
 
           <nav class="app-drawer__nav">
             <AppNavItem
@@ -261,15 +282,19 @@ const drawerOpen = ref(false)
 // Pantallas que necesitan todo el ancho (el punto de venta) lo piden con
 // `definePage({ meta: { pantallaCompleta: true } })`: el menú se esconde al
 // entrar y vuelve al salir. Se abre igual con el botón, encima del contenido.
+// Va con behavior="mobile" porque `overlay` solo, en desktop, no trae
+// backdrop: no se cerraba al tocar afuera.
 const pantallaCompleta = computed(() => Boolean(route.meta.pantallaCompleta))
 watch(pantallaCompleta, (completa) => {
   drawerOpen.value = completa ? false : $q.screen.gt.sm
 })
 
-// Al elegir otra pantalla desde el menú abierto encima, se cierra solo.
-watch(() => route.path, () => {
-  if (pantallaCompleta.value) drawerOpen.value = false
-})
+// El menú flota encima (pantalla completa, o pantalla chica): al elegir un
+// ítem se cierra solo.
+function cerrarSiFlota (evt) {
+  if (!evt.target.closest('a')) return
+  if (pantallaCompleta.value || $q.screen.lt.md) drawerOpen.value = false
+}
 const search = ref('')
 
 function toggleDrawer () {
@@ -342,14 +367,17 @@ function toggleDrawer () {
   flex-shrink: 0;
 }
 
-.app-drawer {
+// :global porque QDrawer tiene inheritAttrs: false y el `class` cae en su
+// <aside> interno, no en su raíz: el atributo del scoped nunca llega ahí y
+// con `.app-drawer` a secas la regla no matcheaba (no había línea).
+:global(.app-drawer) {
   background: var(--app-surface);
-  border-right: 1px solid var(--app-border-subtle);
+  border-right: 1px solid var(--app-border-control);
 }
 
 // QDrawer scrollea en un hijo, no en su raíz. Sin fondo transparente acá, el
 // hijo taparía la superficie que acabamos de definir arriba.
-.app-drawer :deep(.q-drawer__content) {
+:global(.app-drawer .q-drawer__content) {
   background: transparent;
 }
 
