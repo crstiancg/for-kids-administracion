@@ -20,16 +20,39 @@ use Illuminate\Validation\ValidationException;
  *   registro (una devolución), nunca editando.
  * - La caja abierta se bloquea (FOR UPDATE) al registrar: un pago no puede
  *   colarse en una caja que se está cerrando en ese mismo instante.
+ * - Es POR USUARIO: cada cajero cobra en SU caja (`abierta_por`), con su
+ *   propio arqueo.
+ * - Es DIARIA: una caja abierta en un día anterior no recibe más dinero; hay
+ *   que cerrarla con su arqueo y abrir la de hoy.
  */
 class Cajas
 {
-    public function actual(): ?Caja
+    /**
+     * La caja abierta del usuario (puede estar vencida: así la ve y la cierra).
+     */
+    public function actual(?User $usuario): ?Caja
     {
-        return Caja::query()->where('estado', Caja::ABIERTA)->first();
+        if (! $usuario) {
+            return null;
+        }
+
+        return Caja::query()->where('estado', Caja::ABIERTA)->where('abierta_por', $usuario->id)->first();
     }
 
     public function abrir(float $montoApertura, ?User $usuario): Caja
     {
+        if (! $usuario) {
+            throw $this->conflicto('caja', 'La caja se abre con un usuario.');
+        }
+
+        // Una caja olvidada de ayer se cierra con su arqueo, no se pisa: si
+        // no, ese efectivo nunca se cuenta.
+        if ($pendiente = $this->actual($usuario)) {
+            throw $this->conflicto('caja', $pendiente->vencida()
+                ? 'Tenés la caja del '.$this->dia($pendiente).' sin cerrar: cerrala con su arqueo antes de abrir la de hoy.'
+                : 'Ya tenés una caja abierta hoy.');
+        }
+
         try {
             return DB::transaction(fn () => Caja::query()->forceCreate([
                 'estado' => Caja::ABIERTA,
@@ -39,8 +62,8 @@ class Cajas
                 'abierta_at' => now(),
             ]));
         } catch (UniqueConstraintViolationException) {
-            // El unique de `abierta` ganó la carrera: ya hay una abierta.
-            throw $this->conflicto('caja', 'Ya hay una caja abierta.');
+            // El unique (abierta_por, abierta) ganó la carrera: doble click.
+            throw $this->conflicto('caja', 'Ya tenés una caja abierta hoy.');
         }
     }
 
@@ -89,7 +112,7 @@ class Cajas
     public function cobrar(Pedido $pedido, array $datos, ?User $usuario): Pago
     {
         return DB::transaction(function () use ($pedido, $datos, $usuario) {
-            $caja = $this->cajaAbiertaBloqueada();
+            $caja = $this->cajaAbiertaBloqueada($usuario);
             $pedido = Pedido::query()->whereKey($pedido->id)->lockForUpdate()->firstOrFail();
 
             if (! in_array($pedido->estado, [Pedido::PENDIENTE, Pedido::CONFIRMADO], true)) {
@@ -140,7 +163,7 @@ class Cajas
     public function devolver(Pedido $pedido, array $datos, ?User $usuario): Pago
     {
         return DB::transaction(function () use ($pedido, $datos, $usuario) {
-            $caja = $this->cajaAbiertaBloqueada();
+            $caja = $this->cajaAbiertaBloqueada($usuario);
             $pedido = Pedido::query()->whereKey($pedido->id)->lockForUpdate()->firstOrFail();
 
             if ($pedido->estado === Pedido::ENTREGADO) {
@@ -173,7 +196,7 @@ class Cajas
     public function movimiento(string $tipo, float $monto, string $concepto, ?User $usuario): MovimientoCaja
     {
         return DB::transaction(function () use ($tipo, $monto, $concepto, $usuario) {
-            $caja = $this->cajaAbiertaBloqueada();
+            $caja = $this->cajaAbiertaBloqueada($usuario);
 
             if ($tipo === MovimientoCaja::EGRESO) {
                 $this->exigirEfectivo($caja, $monto, 'movimiento.monto');
@@ -226,15 +249,25 @@ class Cajas
         });
     }
 
-    private function cajaAbiertaBloqueada(): Caja
+    private function cajaAbiertaBloqueada(?User $usuario): Caja
     {
-        $caja = Caja::query()->where('estado', Caja::ABIERTA)->lockForUpdate()->first();
+        $caja = $usuario
+            ? Caja::query()->where('estado', Caja::ABIERTA)->where('abierta_por', $usuario->id)->lockForUpdate()->first()
+            : null;
 
         if (! $caja) {
-            throw $this->conflicto('caja', 'No hay una caja abierta: abrí la caja para registrar dinero.');
+            throw $this->conflicto('caja', 'No tenés una caja abierta: abrí tu caja para registrar dinero.');
+        }
+        if ($caja->vencida()) {
+            throw $this->conflicto('caja', 'Tu caja es del '.$this->dia($caja).': cerrala con su arqueo y abrí la de hoy.');
         }
 
         return $caja;
+    }
+
+    private function dia(Caja $caja): string
+    {
+        return $caja->abierta_at->copy()->timezone(config('app.zona_negocio'))->format('d/m');
     }
 
     private function exigirEfectivo(Caja $caja, float $monto, string $campo): void

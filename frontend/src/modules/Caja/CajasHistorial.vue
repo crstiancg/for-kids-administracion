@@ -105,6 +105,8 @@ import CajaResumen from './CajaResumen.vue'
 const userStore = useUserStore()
 
 const columns = [
+  // Caja por usuario: de quién es cada arqueo.
+  { name: 'cajero', label: 'Cajero', field: (row) => row.abierta_por?.name ?? '—', align: 'left' },
   { name: 'apertura', label: 'Apertura', field: 'abierta_at', align: 'left' },
   { name: 'cierre', label: 'Cierre', field: 'cerrada_at', align: 'left' },
   { name: 'monto_apertura', label: 'Inicial', field: (row) => formatearPrecio(row.monto_apertura), align: 'right', classes: 'text-mono' },

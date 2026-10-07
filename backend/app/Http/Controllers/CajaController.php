@@ -10,7 +10,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Caja: abrir, cobrar (desde pedidos), ingresos/egresos y cierre con arqueo.
+ * Caja diaria por usuario: abrir, cobrar (desde pedidos), ingresos/egresos y
+ * cierre con arqueo.
  * Una caja cerrada es historial: no se edita ni se reabre.
  */
 class CajaController extends Controller
@@ -37,11 +38,12 @@ class CajaController extends Controller
     }
 
     /**
-     * La caja abierta con sus totales, o `{ caja: null }` si no hay.
+     * La caja abierta DEL USUARIO con sus totales, o `{ caja: null }` si no
+     * tiene. Puede venir vencida (de un día anterior): para cerrarla.
      */
-    public function actual(): JsonResponse
+    public function actual(Request $request): JsonResponse
     {
-        $caja = $this->cajas->actual();
+        $caja = $this->cajas->actual($request->user());
 
         return response()->json(['caja' => $caja ? $this->conDetalle($caja) : null]);
     }
@@ -75,7 +77,7 @@ class CajaController extends Controller
         $movimiento = $request->validated('movimiento');
         $this->cajas->movimiento($movimiento['tipo'], (float) $movimiento['monto'], $movimiento['concepto'], $request->user());
 
-        return response()->json($this->conDetalle($this->cajas->actual()), 201);
+        return response()->json($this->conDetalle($this->cajas->actual($request->user())), 201);
     }
 
     /**

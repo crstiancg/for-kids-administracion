@@ -36,6 +36,8 @@ class CajaResource extends JsonResource
         return [
             'id' => $this->id,
             'estado' => $this->estado,
+            // Abierta en un día anterior: no recibe dinero hasta cerrarla.
+            'vencida' => $this->vencida(),
             'monto_apertura' => $this->monto_apertura,
             'abierta_at' => $this->abierta_at?->toIso8601String(),
             'abierta_por' => $this->whenLoaded('abiertaPor', fn () => $this->abiertaPor?->only(['id', 'name'])),

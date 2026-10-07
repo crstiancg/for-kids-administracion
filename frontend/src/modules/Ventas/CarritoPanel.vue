@@ -345,25 +345,6 @@
         {{ errores['venta.pagos'][0] }}
       </p>
 
-      <div
-        v-if="!cargandoCaja && !caja"
-        class="carrito__caja"
-        role="alert"
-      >
-        <q-icon
-          name="lock"
-          size="16px"
-        />
-        <span>Caja cerrada</span>
-        <button
-          v-if="userStore.hasPermission('cajas.abrir')"
-          type="button"
-          @click="abrirCajaDialog = true"
-        >
-          Abrir
-        </button>
-      </div>
-
       <button
         type="button"
         class="carrito__cobrar"
@@ -381,14 +362,67 @@
       </button>
     </footer>
 
+    <!-- Sin caja del día no se vende: el diálogo no se puede saltear. La
+         caja es diaria y por cajero; si quedó abierta la de un día anterior,
+         se cierra acá mismo con su arqueo y después se abre la de hoy.
+         Cerrar el diálogo = salir del POS. -->
     <AppDialog
-      v-model="abrirCajaDialog"
-      title="Abrir caja"
+      :model-value="bloqueado"
+      :title="caja?.vencida ? 'Cerrá la caja anterior' : 'Abrí tu caja del día'"
+      persistent
+      @update:model-value="(abierto) => { if (!abierto) salirDelPos() }"
     >
-      <AbrirCajaForm
-        v-if="abrirCajaDialog"
-        @save="cajaAbierta"
-      />
+      <template v-if="caja?.vencida">
+        <p class="carrito__cajaTexto">
+          Tu caja del <strong>{{ diaDe(caja.abierta_at) }}</strong> sigue abierta.
+          Contá el efectivo del cajón y cerrala; después abrís la de hoy.
+        </p>
+        <CerrarCajaForm
+          v-if="userStore.hasPermission('cajas.cerrar')"
+          ref="cerrarRef"
+          :caja="caja"
+          @save="cajaCerrada"
+        />
+        <p
+          v-else
+          class="carrito__cajaTexto"
+        >
+          No tenés permiso para cerrarla: pedile a un encargado.
+        </p>
+      </template>
+
+      <template v-else>
+        <p class="carrito__cajaTexto">
+          Para vender, abrí tu caja con el efectivo con el que arrancás.
+          Todo lo que cobres hoy entra a tu caja.
+        </p>
+        <AbrirCajaForm
+          v-if="userStore.hasPermission('cajas.abrir')"
+          @save="cajaAbierta"
+        />
+        <p
+          v-else
+          class="carrito__cajaTexto"
+        >
+          No tenés permiso para abrir caja: pedile a un encargado.
+        </p>
+      </template>
+
+      <template #actions>
+        <AppButton
+          variant="tertiary"
+          label="Salir del punto de venta"
+          @click="salirDelPos"
+        />
+        <AppButton
+          v-if="caja?.vencida && userStore.hasPermission('cajas.cerrar')"
+          variant="primary"
+          label="Cerrar caja"
+          icon="lock"
+          :loading="cerrarRef?.form?.processing"
+          @click="cerrarRef.submit()"
+        />
+      </template>
     </AppDialog>
   </aside>
 </template>
@@ -396,8 +430,11 @@
 <script setup>
 import { computed, onMounted, ref, useId, watch } from 'vue'
 import { useQuasar } from 'quasar'
+import { useRouter } from 'vue-router'
+import AppButton from '@/components/AppButton.vue'
 import AppDialog from '@/components/AppDialog.vue'
 import AbrirCajaForm from '@/modules/Caja/AbrirCajaForm.vue'
+import CerrarCajaForm from '@/modules/Caja/CerrarCajaForm.vue'
 import { CON_OPERACION, METODOS } from '@/modules/Caja/constantes'
 import BuscadorCliente from '@/modules/Pedidos/BuscadorCliente.vue'
 import CajaService from '@/services/CajaService'
@@ -432,9 +469,22 @@ const uid = `carrito-${useId()}`
 const clienteRef = ref()
 
 // ── Caja ──
+const router = useRouter()
 const caja = ref(null)
 const cargandoCaja = ref(true)
-const abrirCajaDialog = ref(false)
+const cerrarRef = ref()
+
+// Sin caja, o con la de un día anterior: no se vende hasta resolverlo.
+const bloqueado = computed(() => !cargandoCaja.value && (!caja.value || caja.value.vencida))
+
+const formatoDia = new Intl.DateTimeFormat('es-PE', { weekday: 'long', day: 'numeric', month: 'long' })
+function diaDe (iso) {
+  return formatoDia.format(new Date(iso))
+}
+
+function salirDelPos () {
+  router.push('/')
+}
 
 async function cargarCaja () {
   try {
@@ -446,8 +496,21 @@ async function cargarCaja () {
 
 function cajaAbierta (nueva) {
   caja.value = nueva
-  abrirCajaDialog.value = false
-  $q.notify({ type: 'positive', message: 'Caja abierta.', position: 'top-right', timeout: 1500 })
+  $q.notify({ type: 'positive', message: 'Caja abierta. ¡Buenas ventas!', position: 'top-right', timeout: 1500 })
+}
+
+// Cerrada la vencida, el mismo diálogo pasa a pedir la apertura de hoy.
+function cajaCerrada (resultado) {
+  caja.value = null
+  const diferencia = Number(resultado?.diferencia ?? 0)
+  $q.notify({
+    type: diferencia === 0 ? 'positive' : 'warning',
+    message: diferencia === 0
+      ? 'Caja anterior cerrada: cuadra exacto.'
+      : `Caja anterior cerrada con ${diferencia < 0 ? 'faltante' : 'sobrante'} de ${formatearPrecio(Math.abs(diferencia))}.`,
+    position: 'top-right',
+    timeout: 3500
+  })
 }
 
 onMounted(cargarCaja)
@@ -500,7 +563,7 @@ function errorPago (j, campo) {
 }
 
 const puedeCobrar = computed(() =>
-  Boolean(caja.value) && pos.items.length > 0 && pos.total > 0 && Math.abs(pos.restante) < 0.005 && !procesando.value)
+  Boolean(caja.value) && !caja.value.vencida && pos.items.length > 0 && pos.total > 0 && Math.abs(pos.restante) < 0.005 && !procesando.value)
 
 async function cobrar () {
   if (!puedeCobrar.value) {
@@ -931,26 +994,14 @@ defineExpose({ cobrar, enfocarCliente })
   }
 }
 
-.carrito__caja {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: rgba($negative, 0.08);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--app-ink);
+.carrito__cajaTexto {
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--app-ink-2);
 
-  button {
-    margin-left: auto;
-    padding: 4px 10px;
-    border: 0;
-    border-radius: 6px;
-    background: $primary;
-    font-weight: 600;
-    color: #FFFFFF;
-    cursor: pointer;
+  strong {
+    color: var(--app-ink);
   }
 }
 

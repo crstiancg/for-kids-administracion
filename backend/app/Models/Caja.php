@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * Una sesión de caja: se abre con un monto inicial, recibe pagos y
  * movimientos, y se cierra con el arqueo de efectivo. Cerrada no se reabre.
+ * Es DIARIA y POR USUARIO: `abierta_por` es su dueño (el cajero).
  * Se abre y cierra sólo a través de App\Services\Cajas (sin fillable a
  * propósito).
  */
@@ -54,5 +55,17 @@ class Caja extends Model
     public function estaAbierta(): bool
     {
         return $this->estado === self::ABIERTA;
+    }
+
+    /**
+     * Abierta en un día anterior (en la zona del negocio, no en UTC): ya no
+     * recibe dinero hasta cerrarla con su arqueo. La caja es DIARIA.
+     */
+    public function vencida(): bool
+    {
+        $zona = config('app.zona_negocio');
+
+        return $this->estaAbierta()
+            && $this->abierta_at->copy()->timezone($zona)->toDateString() < now($zona)->toDateString();
     }
 }

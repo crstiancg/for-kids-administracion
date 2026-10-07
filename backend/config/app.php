@@ -67,6 +67,11 @@ return [
 
     'timezone' => 'UTC',
 
+    // Zona horaria del NEGOCIO: decide qué día es "hoy" (la caja diaria). Los
+    // timestamps se siguen guardando en UTC; con UTC a secas, desde las 19:00
+    // de Lima el servidor ya estaría en "mañana".
+    'zona_negocio' => env('APP_ZONA_NEGOCIO', 'America/Lima'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

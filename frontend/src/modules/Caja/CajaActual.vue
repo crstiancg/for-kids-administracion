@@ -1,7 +1,7 @@
 <template>
   <div class="app-list-page">
     <AppPageHeader
-      title="Caja"
+      title="Mi caja"
       :subtitle="subtitulo"
     >
       <template #actions>
@@ -13,14 +13,15 @@
           to="/cajas"
         />
         <template v-if="caja">
+          <!-- Vencida no recibe dinero: sólo se cierra. -->
           <AppButton
-            v-if="userStore.hasPermission('cajas.movimientos')"
+            v-if="userStore.hasPermission('cajas.movimientos') && !caja.vencida"
             label="Ingreso"
             icon="add"
             @click="abrirMovimiento('ingreso')"
           />
           <AppButton
-            v-if="userStore.hasPermission('cajas.movimientos')"
+            v-if="userStore.hasPermission('cajas.movimientos') && !caja.vencida"
             label="Egreso"
             icon="remove"
             @click="abrirMovimiento('egreso')"
@@ -43,33 +44,64 @@
       <q-spinner size="28px" />
     </div>
 
-    <!-- Sin caja abierta: abrirla es lo primero del día. -->
+    <!-- Sin caja abierta. Se abre desde el punto de venta, que es donde se
+         empieza a vender: acá sólo se indica el camino. El form queda para
+         quien cobra pedidos pero no usa el POS. -->
     <AppCard
       v-else-if="!caja"
       class="caja__cerrada"
     >
+      <span class="caja__icono">
+        <q-icon
+          name="lock"
+          size="26px"
+        />
+      </span>
       <h2 class="caja__titulo">
-        No hay una caja abierta
+        Tu caja está cerrada
       </h2>
       <p class="caja__texto">
-        Para cobrar pedidos (en cualquier método) tiene que haber una caja abierta.
+        Se abre al empezar a vender, desde el punto de venta, con el efectivo
+        inicial del cajón. Lo que cobres hoy entra a tu caja y al cerrar se
+        arquea sólo tu cajón.
       </p>
+      <AppButton
+        v-if="userStore.hasPermission('ventas.store')"
+        variant="primary"
+        label="Ir al punto de venta"
+        icon="point_of_sale"
+        to="/pos"
+      />
       <AbrirCajaForm
-        v-if="userStore.hasPermission('cajas.abrir')"
+        v-else-if="userStore.hasPermission('cajas.abrir')"
+        class="caja__form"
         @save="abierta"
       />
       <p
         v-else
         class="caja__texto"
       >
-        Pedile a quien tenga permiso que la abra.
+        No tenés permiso para abrir caja: pedile a un encargado.
       </p>
     </AppCard>
 
-    <CajaResumen
-      v-else
-      :caja="caja"
-    />
+    <template v-else>
+      <div
+        v-if="caja.vencida"
+        class="caja__vencida"
+        role="alert"
+      >
+        <q-icon
+          name="warning"
+          size="20px"
+        />
+        <span>
+          Esta caja es del <strong>{{ diaApertura }}</strong>. La caja es diaria:
+          cerrala con su arqueo para poder abrir la de hoy y seguir cobrando.
+        </span>
+      </div>
+      <CajaResumen :caja="caja" />
+    </template>
 
     <AppDialog
       v-model="movimientoDialog"
@@ -150,9 +182,12 @@ const formatoFecha = new Intl.DateTimeFormat('es-PE', { dateStyle: 'short', time
 
 const subtitulo = computed(() => {
   if (!caja.value) return 'Cerrada'
-  const quien = caja.value.abierta_por?.name
-  return `Abierta desde ${formatoFecha.format(new Date(caja.value.abierta_at))}${quien ? ` por ${quien}` : ''}`
+  return `Abierta desde ${formatoFecha.format(new Date(caja.value.abierta_at))}`
 })
+
+const diaApertura = computed(() => caja.value
+  ? new Intl.DateTimeFormat('es-PE', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(caja.value.abierta_at))
+  : '')
 
 async function cargar () {
   cargando.value = true
@@ -206,6 +241,20 @@ function cerrada (resultado) {
 </script>
 
 <style lang="scss" scoped>
+.caja__vencida {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba($warning, 0.5);
+  border-radius: 12px;
+  background: rgba($warning, 0.1);
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--app-ink);
+}
+
 .caja__cargando {
   display: flex;
   justify-content: center;
@@ -215,8 +264,28 @@ function cerrada (resultado) {
 .caja__cerrada {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 12px;
-  max-width: 520px;
+  max-width: 460px;
+  padding: 36px 28px;
+  text-align: center;
+}
+
+.caja__icono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 4px;
+  border-radius: 999px;
+  background: var(--app-brand-soft);
+  color: var(--app-brand-soft-ink);
+}
+
+.caja__form {
+  width: 100%;
+  text-align: left;
 }
 
 .caja__titulo {
