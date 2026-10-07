@@ -194,3 +194,18 @@ body.body--dark {
     -webkit-print-color-adjust: exact;
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// SCROLL SIN BARRA
+//
+// Se sigue scrolleando (rueda, trackpad, touch, teclado); sólo se oculta la
+// barra. Firefox usa `scrollbar-width`; Chrome, Edge y Safari el
+// pseudo-elemento. Global: tablas, drawer, diálogos y menús incluidos.
+// ─────────────────────────────────────────────────────────────────────────
+* {
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}
