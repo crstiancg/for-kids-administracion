@@ -128,7 +128,8 @@
         {{ formatearPrecio(pedido.saldo) }}
       </dd>
       <!-- Con el costo congelado al confirmar. -->
-      <template v-if="pedido.ganancia !== null">
+      <!-- != (no !==): sin permiso de costos el campo no viene (undefined). -->
+      <template v-if="pedido.ganancia != null">
         <dt>Ganancia</dt>
         <dd :class="['text-mono', Number(pedido.ganancia) < 0 ? 'pedido-detalle__perdida' : 'pedido-detalle__ganancia']">
           {{ formatearPrecio(pedido.ganancia) }}

@@ -66,8 +66,14 @@ const model = defineModel()
 
 <style lang="scss" scoped>
 .app-dialog {
+  // Encabezado y acciones FIJOS; sólo el cuerpo scrollea. Si no, en un
+  // contenido largo los botones quedan abajo, fuera de la vista (y sin barra
+  // de scroll no hay pista de que existen).
+  display: flex;
+  flex-direction: column;
   width: 480px;
   max-width: 90vw;
+  max-height: calc(100vh - 48px);
 }
 
 // QDialog le pone max-width 560px a su contenido; sin pisarlo, `lg` quedaría
@@ -78,6 +84,7 @@ const model = defineModel()
 }
 
 .app-dialog__header {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -95,15 +102,21 @@ const model = defineModel()
 }
 
 .app-dialog__sep {
+  flex-shrink: 0;
   background: var(--app-border-subtle);
 }
 
 .app-dialog__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   padding: 20px 24px;
 }
 
 .app-dialog__actions {
+  flex-shrink: 0;
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 10px;
   padding: 16px 24px;
