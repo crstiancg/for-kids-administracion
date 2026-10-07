@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\Caja;
+use App\Models\Cliente;
 use App\Models\MovimientoCaja;
+use App\Models\MovimientoSaldo;
 use App\Models\Pago;
 use App\Models\Pedido;
 use App\Models\User;
@@ -95,7 +97,9 @@ class Cajas
         return [
             'monto_apertura' => round((float) $caja->monto_apertura, 2),
             'cobros' => $cobros,
-            'total_cobrado' => round($cobros->sum('total'), 2),
+            // Sin el saldo a favor: no es plata que entra, ya se cobró en la
+            // venta original (queda como fila informativa en `cobros`).
+            'total_cobrado' => round($cobros->where('metodo', '!=', Pago::SALDO)->sum('total'), 2),
             'ingresos' => round($ingresos, 2),
             'egresos' => round($egresos, 2),
             'efectivo_esperado' => round((float) $caja->monto_apertura + $efectivo + $ingresos - $egresos, 2),
@@ -139,7 +143,9 @@ class Cajas
                 $vuelto = round($recibido - $monto, 2);
             }
 
-            return Pago::create([
+            $cliente = $datos['metodo'] === Pago::SALDO ? $this->clienteConSaldo($pedido, $monto, 'pago.monto') : null;
+
+            $pago = Pago::create([
                 'pedido_id' => $pedido->id,
                 'caja_id' => $caja->id,
                 'metodo' => $datos['metodo'],
@@ -149,6 +155,18 @@ class Cajas
                 'referencia' => $datos['referencia'] ?? null,
                 'user_id' => $usuario?->id,
             ]);
+
+            if ($cliente) {
+                MovimientoSaldo::forceCreate([
+                    'cliente_id' => $cliente->id,
+                    'monto' => -$monto,
+                    'concepto' => "Pago de {$pedido->codigo}",
+                    'pago_id' => $pago->id,
+                    'user_id' => $usuario?->id,
+                ]);
+            }
+
+            return $pago;
         });
     }
 
@@ -182,7 +200,11 @@ class Cajas
                 $this->exigirEfectivo($caja, $monto, 'pago.monto');
             }
 
-            return Pago::create([
+            if ($datos['metodo'] === Pago::SALDO && ! $pedido->cliente_id) {
+                throw ValidationException::withMessages(['pago.metodo' => 'Sin cliente no hay a quién dejarle saldo a favor.']);
+            }
+
+            $pago = Pago::create([
                 'pedido_id' => $pedido->id,
                 'caja_id' => $caja->id,
                 'metodo' => $datos['metodo'],
@@ -190,6 +212,19 @@ class Cajas
                 'motivo' => $datos['motivo'],
                 'user_id' => $usuario?->id,
             ]);
+
+            // Devolver "en saldo" no saca plata del cajón: se acredita.
+            if ($datos['metodo'] === Pago::SALDO) {
+                MovimientoSaldo::forceCreate([
+                    'cliente_id' => $pedido->cliente_id,
+                    'monto' => $monto,
+                    'concepto' => "Devolución de {$pedido->codigo}",
+                    'pago_id' => $pago->id,
+                    'user_id' => $usuario?->id,
+                ]);
+            }
+
+            return $pago;
         });
     }
 
@@ -268,6 +303,27 @@ class Cajas
     private function dia(Caja $caja): string
     {
         return $caja->abierta_at->copy()->timezone(config('app.zona_negocio'))->format('d/m');
+    }
+
+    /**
+     * El cliente del pedido, bloqueado, con saldo suficiente: dos cobros a la
+     * vez no pueden gastar el mismo saldo.
+     */
+    private function clienteConSaldo(Pedido $pedido, float $monto, string $campo): Cliente
+    {
+        $cliente = $pedido->cliente_id
+            ? Cliente::query()->whereKey($pedido->cliente_id)->lockForUpdate()->first()
+            : null;
+        if (! $cliente) {
+            throw ValidationException::withMessages([$campo => 'Para pagar con saldo a favor el pedido tiene que tener cliente.']);
+        }
+
+        $saldo = $cliente->saldo();
+        if ($monto > $saldo) {
+            throw ValidationException::withMessages([$campo => 'El saldo a favor de '.$cliente->nombre.' es '.$this->soles($saldo).'.']);
+        }
+
+        return $cliente;
     }
 
     private function exigirEfectivo(Caja $caja, float $monto, string $campo): void

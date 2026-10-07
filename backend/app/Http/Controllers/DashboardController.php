@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Caja;
+use App\Models\Pago;
 use App\Models\Pedido;
 use App\Models\User;
 use App\Services\Cajas;
@@ -93,7 +94,8 @@ class DashboardController extends Controller
         return Caja::query()
             ->where('estado', Caja::ABIERTA)
             ->with('abiertaPor:id,name')
-            ->withSum('pagos as total_cobrado', 'monto')
+            // Sin saldo a favor: no es plata nueva en el cajón.
+            ->withSum(['pagos as total_cobrado' => fn ($q) => $q->where('metodo', '!=', Pago::SALDO)], 'monto')
             ->orderBy('abierta_at')
             ->get()
             ->map(fn (Caja $c) => [

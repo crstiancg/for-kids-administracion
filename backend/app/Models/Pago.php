@@ -21,9 +21,14 @@ class Pago extends Model
         'plin' => 'Plin',
         'transferencia' => 'Transferencia',
         'tarjeta' => 'Tarjeta',
+        // Crédito del cliente (de un cambio). Mueve su libro de saldo, no
+        // el cajón: no entra al arqueo de efectivo.
+        'saldo' => 'Saldo a favor',
     ];
 
     public const EFECTIVO = 'efectivo';
+
+    public const SALDO = 'saldo';
 
     public const UPDATED_AT = null;
 

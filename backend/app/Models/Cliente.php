@@ -25,4 +25,15 @@ class Cliente extends Model
     {
         return $this->hasMany(Pedido::class);
     }
+
+    public function movimientosSaldo(): HasMany
+    {
+        return $this->hasMany(MovimientoSaldo::class);
+    }
+
+    /** Saldo a favor: la suma de su libro (cambios − usos). */
+    public function saldo(): float
+    {
+        return round((float) $this->movimientosSaldo()->sum('monto'), 2);
+    }
 }

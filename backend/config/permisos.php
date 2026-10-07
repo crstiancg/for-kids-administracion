@@ -29,6 +29,8 @@ return [
     // quien tenga CUALQUIERA de estos". Sirve para las pantallas que leen
     // catálogos de otro módulo sin dar acceso a administrarlo.
     'implicitos' => [
+        // El form de cambio lee qué puede volver de la venta.
+        'pedidos.cambios.preparar' => ['pedidos.cambios'],
         // El form de usuarios lista roles y permisos para tildar.
         'roles.index' => ['usuarios.store', 'usuarios.update'],
         // El form de roles y el de usuarios listan permisos para tildar.
@@ -55,8 +57,8 @@ return [
         'ventas.catalogo' => ['ventas.store'],
         // Los formularios de inventario buscan la variante de cada línea.
         // Los formularios de pedidos buscan variantes y clientes.
-        'inventario.variantes' => ['inventario.entradas', 'inventario.salidas', 'inventario.ajustes', 'pedidos.store', 'pedidos.update', 'ventas.store'],
-        'clientes.index' => ['pedidos.store', 'pedidos.update', 'ventas.store'],
+        'inventario.variantes' => ['inventario.entradas', 'inventario.salidas', 'inventario.ajustes', 'pedidos.store', 'pedidos.update', 'ventas.store', 'pedidos.cambios'],
+        'clientes.index' => ['pedidos.store', 'pedidos.update', 'ventas.store', 'pedidos.cambios'],
         'clientes.show' => ['clientes.update'],
         // Autocompletar con RENIEC/SUNAT es parte de cargar un cliente.
         'clientes.consultar-documento' => ['clientes.store', 'clientes.update'],

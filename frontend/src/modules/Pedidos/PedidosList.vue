@@ -182,6 +182,13 @@
           @click="impresionRef.imprimir(detalle)"
         />
         <AppButton
+          v-if="puede('cambiar')"
+          variant="secondary"
+          label="Cambiar prenda"
+          icon="swap_horiz"
+          @click="cambioDialog = true"
+        />
+        <AppButton
           v-if="puede('cancelar')"
           variant="tertiary"
           label="Cancelar pedido"
@@ -233,6 +240,36 @@
             Falta cobrar {{ formatearPrecio(detalle.saldo) }}
           </q-tooltip>
         </AppButton>
+      </template>
+    </AppDialog>
+
+    <!-- ── Cambio de prenda (venta entregada, dentro del plazo) ── -->
+    <AppDialog
+      v-model="cambioDialog"
+      :title="`Cambio · ${detalle?.codigo ?? ''}`"
+      size="lg"
+      persistent
+    >
+      <CambioForm
+        v-if="cambioDialog && detalle"
+        ref="cambioRef"
+        :pedido-id="detalle.id"
+        @save="cambioGuardado"
+      />
+      <template #actions>
+        <AppButton
+          variant="tertiary"
+          label="Cancelar"
+          @click="cambioDialog = false"
+        />
+        <AppButton
+          variant="primary"
+          label="Registrar cambio"
+          icon="swap_horiz"
+          :disable="!cambioRef?.puedeEnviar"
+          :loading="cambioRef?.procesando"
+          @click="cambioRef.submit()"
+        />
       </template>
     </AppDialog>
 
@@ -317,6 +354,7 @@ import ImpresionTicket from '@/modules/Ventas/ImpresionTicket.vue'
 import PedidoService from '@/services/PedidoService'
 import { useUserStore } from '@/stores/user-store'
 import { formatearPrecio } from '@/utils/moneda'
+import CambioForm from './CambioForm.vue'
 import PedidoDetalle from './PedidoDetalle.vue'
 import PedidoForm from './PedidoForm.vue'
 import { CANALES, ESTADOS } from './constantes'
@@ -456,7 +494,9 @@ const REGLAS = {
   devolver: { estados: ['pendiente', 'confirmado'], permiso: 'pedidos.devoluciones', pagado: true },
   confirmar: { estados: ['pendiente'], permiso: 'pedidos.confirmar' },
   entregar: { estados: ['confirmado'], permiso: 'pedidos.entregar' },
-  cancelar: { estados: ['pendiente', 'confirmado'], permiso: 'pedidos.cancelar' }
+  cancelar: { estados: ['pendiente', 'confirmado'], permiso: 'pedidos.cancelar' },
+  // El plazo lo controla el form (y el servidor): acá sólo estado y permiso.
+  cambiar: { estados: ['entregado'], permiso: 'pedidos.cambios' }
 }
 
 function puede (accion) {
@@ -467,6 +507,25 @@ function puede (accion) {
     userStore.hasPermission(regla.permiso) &&
     (!regla.saldo || Number(p.saldo) > 0) &&
     (!regla.pagado || Number(p.pagado) > 0)
+}
+
+// ── Cambio de prenda ──
+const cambioDialog = ref(false)
+const cambioRef = ref()
+
+async function cambioGuardado (resultado) {
+  cambioDialog.value = false
+  detalleDialog.value = false
+  refrescar()
+  const saldo = Number(resultado.saldo_cliente)
+  $q.notify({
+    type: 'positive',
+    message: `Cambio registrado.${saldo > 0 ? ` Le queda ${formatearPrecio(saldo)} a favor.` : ''}`,
+    position: 'top-right',
+    timeout: 3000
+  })
+  // Lo que se llevó es una venta nueva: su ticket.
+  if (resultado.pedido_nuevo) impresionRef.value.imprimir(resultado.pedido_nuevo)
 }
 
 // ── Cobrar / devolver ──

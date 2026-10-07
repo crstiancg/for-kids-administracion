@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\CambioItem;
 use App\Models\Categoria;
 use App\Models\Oferta;
 use App\Models\Pago;
@@ -19,6 +20,8 @@ use Illuminate\Support\Facades\DB;
  *
  * - Venta = pedido confirmado o entregado, contado por `confirmado_at`.
  * - Ganancia = total vendido − costo CONGELADO de cada ítem (el de ese día).
+ * - Lo que vuelve en un cambio se RESTA el día del cambio (ventas, ganancia,
+ *   más vendidos, tallas): si no, la prenda contaría como vendida dos veces.
  * - Los rangos llegan como Periodo (días del negocio) y se consultan en UTC.
  */
 class Estadisticas
@@ -39,7 +42,8 @@ class Estadisticas
     public function resumenVentas(Periodo $p): array
     {
         $fila = $this->vendidos($p)->selectRaw('COALESCE(SUM(total), 0) as total, COUNT(*) as cantidad')->first();
-        $total = (float) $fila->total;
+        // Lo que volvió en cambios no es venta: se resta el día del cambio.
+        $total = (float) $fila->total - (float) $this->devueltos($p)->sum(DB::raw('cambio_items.cantidad * cambio_items.valor_unitario'));
         $cantidad = (int) $fila->cantidad;
 
         return [
@@ -71,6 +75,15 @@ class Estadisticas
             }
         });
 
+        $this->devueltos($p)
+            ->get(['cambios.created_at', DB::raw('cambio_items.cantidad * cambio_items.valor_unitario as valor')])
+            ->each(function ($f) use (&$dias, $zona) {
+                $dia = CarbonImmutable::parse($f->created_at, 'UTC')->timezone($zona)->toDateString();
+                if (isset($dias[$dia])) {
+                    $dias[$dia]['total'] -= (float) $f->valor;
+                }
+            });
+
         return array_values(array_map(fn ($d) => [...$d, 'total' => round($d['total'], 2)], $dias));
     }
 
@@ -85,6 +98,10 @@ class Estadisticas
         // Sin costo (stock que entró por un ajuste, sin compra) no se puede
         // valuar: se informa en vez de contarlo como ganancia pura.
         $sinCosto = $this->items($p)->whereNull('pedido_items.costo_unitario')->count();
+        // Lo devuelto en cambios: deja de ser venta y su costo vuelve al stock.
+        $vendido -= (float) $this->devueltos($p)->sum(DB::raw('cambio_items.cantidad * cambio_items.valor_unitario'));
+        $costo -= (float) $this->devueltos($p)->whereNotNull('cambio_items.costo_unitario')
+            ->sum(DB::raw('cambio_items.cantidad * cambio_items.costo_unitario'));
         $ganancia = $vendido - $costo;
 
         return [
@@ -122,14 +139,28 @@ class Estadisticas
      */
     public function topProductos(Periodo $p, int $limite = 5): array
     {
+        $devueltos = $this->devueltos($p)
+            ->join('variantes', 'variantes.id', '=', 'cambio_items.variante_id')
+            ->groupBy('variantes.producto_id')
+            ->get(['variantes.producto_id', DB::raw('SUM(cambio_items.cantidad) as unidades'), DB::raw('SUM(cambio_items.cantidad * cambio_items.valor_unitario) as total')])
+            ->keyBy('producto_id');
+
+        // Neto de cambios: lo que volvió no cuenta como vendido.
         return $this->items($p)
             ->join('variantes', 'variantes.id', '=', 'pedido_items.variante_id')
             ->join('productos', 'productos.id', '=', 'variantes.producto_id')
             ->groupBy('productos.id', 'productos.nombre')
-            ->orderByDesc('unidades')
-            ->limit($limite)
             ->get(['productos.id', 'productos.nombre', DB::raw('SUM(pedido_items.cantidad) as unidades'), DB::raw('SUM(pedido_items.subtotal) as total')])
-            ->map(fn ($f) => ['id' => $f->id, 'nombre' => $f->nombre, 'unidades' => (int) $f->unidades, 'total' => round((float) $f->total, 2)])
+            ->map(fn ($f) => [
+                'id' => $f->id,
+                'nombre' => $f->nombre,
+                'unidades' => (int) $f->unidades - (int) ($devueltos[$f->id]->unidades ?? 0),
+                'total' => round((float) $f->total - (float) ($devueltos[$f->id]->total ?? 0), 2),
+            ])
+            ->filter(fn ($f) => $f['unidades'] > 0)
+            ->sortByDesc('unidades')
+            ->take($limite)
+            ->values()
             ->all();
     }
 
@@ -141,13 +172,27 @@ class Estadisticas
      */
     public function porTalla(Periodo $p): array
     {
+        // La talla que volvió en un cambio NO le quedó: restarla es lo que
+        // hace útil esta curva para comprar.
+        $devueltas = $this->devueltos($p)
+            ->join('variantes', 'variantes.id', '=', 'cambio_items.variante_id')
+            ->groupBy('variantes.talla_id')
+            ->get(['variantes.talla_id', DB::raw('SUM(cambio_items.cantidad) as unidades'), DB::raw('SUM(cambio_items.cantidad * cambio_items.valor_unitario) as total')])
+            ->keyBy('talla_id');
+
         return $this->items($p)
             ->join('variantes', 'variantes.id', '=', 'pedido_items.variante_id')
             ->join('tallas', 'tallas.id', '=', 'variantes.talla_id')
             ->groupBy('tallas.id', 'tallas.nombre', 'tallas.orden')
             ->orderBy('tallas.orden')
-            ->get(['tallas.nombre', DB::raw('SUM(pedido_items.cantidad) as unidades'), DB::raw('SUM(pedido_items.subtotal) as total')])
-            ->map(fn ($f) => ['talla' => $f->nombre, 'unidades' => (int) $f->unidades, 'total' => round((float) $f->total, 2)])
+            ->get(['tallas.id', 'tallas.nombre', DB::raw('SUM(pedido_items.cantidad) as unidades'), DB::raw('SUM(pedido_items.subtotal) as total')])
+            ->map(fn ($f) => [
+                'talla' => $f->nombre,
+                'unidades' => (int) $f->unidades - (int) ($devueltas[$f->id]->unidades ?? 0),
+                'total' => round((float) $f->total - (float) ($devueltas[$f->id]->total ?? 0), 2),
+            ])
+            ->filter(fn ($f) => $f['unidades'] > 0)
+            ->values()
             ->all();
     }
 
@@ -412,6 +457,15 @@ class Estadisticas
             ->whereIn('pedidos.estado', self::ESTADOS_VENTA)
             ->where('pedidos.confirmado_at', '>=', $p->desdeUtc())
             ->where('pedidos.confirmado_at', '<', $p->hastaUtc());
+    }
+
+    /** Lo que volvió en cambios hechos dentro del período. */
+    private function devueltos(Periodo $p): Builder
+    {
+        return CambioItem::query()
+            ->join('cambios', 'cambios.id', '=', 'cambio_items.cambio_id')
+            ->where('cambios.created_at', '>=', $p->desdeUtc())
+            ->where('cambios.created_at', '<', $p->hastaUtc());
     }
 
     private function items(Periodo $p): Builder

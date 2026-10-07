@@ -41,6 +41,9 @@ class MovimientoInventario extends Model
 
     public const MOTIVO_DEVOLUCION_VENTA = 'devolucion_venta';
 
+    /** Lo que vuelve en un cambio de prenda (App\Services\Cambios). */
+    public const MOTIVO_CAMBIO = 'cambio';
+
     /** Stock inicial cargado al crear el producto (o una variante nueva). */
     public const MOTIVO_ALTA_PRODUCTO = 'alta_producto';
 
@@ -52,6 +55,7 @@ class MovimientoInventario extends Model
             self::MOTIVO_CONTEO => 'Conteo físico',
             self::MOTIVO_VENTA => 'Venta',
             self::MOTIVO_DEVOLUCION_VENTA => 'Pedido cancelado',
+            self::MOTIVO_CAMBIO => 'Cambio de prenda',
             self::MOTIVO_ALTA_PRODUCTO => 'Alta de producto',
             default => self::MOTIVOS_SALIDA[$motivo] ?? $motivo,
         };
