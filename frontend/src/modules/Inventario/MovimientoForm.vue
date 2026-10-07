@@ -247,9 +247,10 @@
 </template>
 
 <script setup>
-import { computed, useId } from 'vue'
+import { computed, onMounted, useId } from 'vue'
 import { useForm } from 'laravel-precognition-vue'
 import AppTextField from '@/components/AppTextField.vue'
+import InventarioService from '@/services/InventarioService'
 import { formatearPrecio } from '@/utils/moneda'
 import BuscadorVariante from './BuscadorVariante.vue'
 import formMovimiento, { nuevaLinea } from './FormMovimiento'
@@ -262,6 +263,11 @@ const props = defineProps({
     type: String,
     required: true,
     validator: (valor) => valor in TIPOS
+  },
+  // Desde el detalle de un producto: arranca con todas sus variantes.
+  productoId: {
+    type: [Number, String],
+    default: null
   }
 })
 
@@ -279,6 +285,12 @@ function errorDe (i, campo) {
 function agregar (variante) {
   form.movimiento.lineas.push(nuevaLinea(props.tipo, variante))
 }
+
+onMounted(async () => {
+  if (props.productoId === null) return
+  const { data } = await InventarioService.variantes({ params: { producto_id: props.productoId, rowsPerPage: 0 } })
+  data.forEach(agregar)
+})
 
 function quitar (i) {
   form.movimiento.lineas.splice(i, 1)
@@ -317,6 +329,13 @@ const totalCompra = computed(() => form.movimiento.lineas.reduce((suma, l) => {
 }, 0))
 
 async function submit () {
+  // Precargado con todo el producto, sólo se completan las variantes que se
+  // movieron: las demás no son un error, se quedan afuera. (El ajuste no lo
+  // necesita: lo que coincide con el sistema ya no genera movimiento.)
+  if (props.productoId !== null && props.tipo !== 'ajuste') {
+    form.movimiento.lineas = form.movimiento.lineas.filter((l) => String(l.cantidad).trim() !== '')
+  }
+
   try {
     const respuesta = await form.submit()
     form.reset()

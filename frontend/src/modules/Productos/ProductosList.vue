@@ -45,7 +45,11 @@
     >
       <template #body-cell-nombre="props">
         <q-td :props="props">
-          <div class="producto-celda">
+          <!-- Link de verdad (no row-click): se puede abrir en otra pestaña. -->
+          <router-link
+            :to="`/productos/${props.row.id}`"
+            class="producto-celda"
+          >
             <!-- Miniatura WebP (unos KB), no el original. -->
             <img
               v-if="props.row.portada"
@@ -74,7 +78,7 @@
                 {{ props.row.variantes_count }} {{ props.row.variantes_count === 1 ? 'variante' : 'variantes' }}
               </div>
             </div>
-          </div>
+          </router-link>
         </q-td>
       </template>
 
@@ -369,6 +373,12 @@ async function confirmarEliminar () {
   display: flex;
   align-items: center;
   gap: 10px;
+  text-decoration: none;
+
+  &:hover .producto-nombre {
+    color: var(--q-primary);
+    text-decoration: underline;
+  }
 }
 
 .producto-portada {
