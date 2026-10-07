@@ -27,6 +27,12 @@ class VarianteResource extends JsonResource
             // null = usa el precio base del producto.
             'precio' => $this->precio,
             'stock' => $this->stock,
+            // Costo de compra (promedio ponderado): de acá sale la ganancia.
+            // Sólo para quien ya ve costos en el libro de inventario.
+            'costo_promedio' => $this->when(
+                (bool) $request->user()?->can('inventario.index'),
+                fn () => $this->costo_promedio,
+            ),
             // Con historial de inventario no se puede quitar del producto.
             'con_movimientos' => $this->whenHas('movimientos_exists', fn ($existe) => (bool) $existe),
             // {"Largo": 52} en cm; objeto vacío y no [] cuando no hay.

@@ -61,3 +61,10 @@ export function nuevaVariante (datos = {}) {
     ...datos
   }
 }
+
+// Lo que costó el stock inicial: cada variante nueva con SU costo.
+export function costoInicialTotal (variantes) {
+  return variantes
+    .filter((v) => !v.id && Number(v.stock_inicial) > 0)
+    .reduce((s, v) => s + Number(v.stock_inicial) * (Number(v.costo_unitario) || 0), 0)
+}
