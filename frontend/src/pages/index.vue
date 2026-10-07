@@ -44,9 +44,51 @@
           />
         </q-btn>
 
+        <SwitchDarkMode />
+
         <div class="app-toolbar__sep" />
 
-        <div class="app-avatar">{{ userStore.initials }}</div>
+        <!-- El avatar abre la cuenta: quién soy y cerrar sesión. -->
+        <q-btn
+          flat
+          round
+          dense
+          class="app-avatar app-avatar--btn"
+          :aria-label="`Cuenta de ${userStore.name}`"
+        >
+          {{ userStore.initials }}
+          <q-menu
+            anchor="bottom right"
+            self="top right"
+            :offset="[0, 8]"
+            class="app-cuenta"
+          >
+            <div class="app-cuenta__head">
+              <div class="app-avatar">{{ userStore.initials }}</div>
+              <div class="app-cuenta__texto">
+                <div class="app-cuenta__nombre">{{ userStore.name }}</div>
+                <div class="app-cuenta__rol">{{ userStore.roles?.[0] ?? userStore.username }}</div>
+              </div>
+            </div>
+            <q-separator />
+            <q-list dense>
+              <q-item
+                v-close-popup
+                clickable
+                class="app-cuenta__salir"
+                @click="onLogout"
+              >
+                <q-item-section avatar>
+                  <q-icon
+                    name="logout"
+                    size="18px"
+                  />
+                </q-item-section>
+                <q-item-section>Cerrar sesión</q-item-section>
+              </q-item>
+            </q-list>
+          </q-menu>
+        </q-btn>
       </q-toolbar>
     </q-header>
 
@@ -224,23 +266,6 @@
             />
           </nav>
         </template>
-
-        <div class="app-drawer__user">
-          <div class="app-avatar">{{ userStore.initials }}</div>
-          <div class="app-drawer__userText">
-            <div class="app-drawer__userName">{{ userStore.name }}</div>
-            <div class="app-drawer__userRole">{{ userStore.roles?.[0] ?? userStore.username }}</div>
-          </div>
-          <q-btn
-            flat
-            dense
-            round
-            icon="logout"
-            aria-label="Cerrar sesión"
-            class="app-drawer__logout"
-            @click="onLogout"
-          />
-        </div>
       </div>
     </q-drawer>
 
@@ -258,6 +283,7 @@ import { useUserStore } from '@/stores/user-store'
 import AppBrandMark from '@/components/AppBrandMark.vue'
 import AppNavItem from '@/components/AppNavItem.vue'
 import AppBadge from '@/components/AppBadge.vue'
+import SwitchDarkMode from '@/components/SwitchDarkMode.vue'
 import PedidoService from '@/services/PedidoService'
 
 const $q = useQuasar()
@@ -360,6 +386,45 @@ function toggleDrawer () {
   font-size: 13.5px;
 }
 
+.app-avatar--btn {
+  padding: 0;
+  min-height: 34px;
+  cursor: pointer;
+
+  &:hover {
+    box-shadow: 0 0 0 3px var(--app-brand-soft);
+  }
+}
+
+// El menú se teleporta fuera del componente: :global para alcanzarlo.
+:global(.app-cuenta) {
+  min-width: 220px;
+  border-radius: 12px;
+}
+
+:global(.app-cuenta__head) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+}
+
+:global(.app-cuenta__nombre) {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--app-ink);
+}
+
+:global(.app-cuenta__rol) {
+  font-size: 12px;
+  color: var(--app-ink-2);
+}
+
+:global(.app-cuenta__salir) {
+  padding: 10px 16px;
+  color: var(--q-negative);
+}
+
 .app-avatar {
   display: flex;
   align-items: center;
@@ -430,36 +495,4 @@ function toggleDrawer () {
   margin-top: 22px;
 }
 
-.app-drawer__user {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: auto;
-  padding: 12px;
-  border-radius: 10px;
-  border: 1px solid var(--app-border-subtle);
-}
-
-.app-drawer__userText {
-  min-width: 0;
-}
-
-.app-drawer__userName {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--app-ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.app-drawer__userRole {
-  font-size: 11.5px;
-  color: var(--app-ink-2);
-}
-
-.app-drawer__logout {
-  margin-left: auto;
-  color: var(--app-ink-2);
-}
 </style>
