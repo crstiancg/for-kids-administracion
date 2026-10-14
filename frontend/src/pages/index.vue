@@ -90,7 +90,7 @@
         @click="cerrarSiFlota"
       >
         <div class="app-brand">
-          <AppBrandMark :size="32" />
+          <AppBrandMark :size="40" />
           <span class="app-brand__name">FOR KIDS</span>
         </div>
 

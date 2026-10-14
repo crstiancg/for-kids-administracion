@@ -1,28 +1,24 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
-import AppBrandMark, { MONOGRAM } from '@/components/AppBrandMark.vue'
+import AppBrandMark from '@/components/AppBrandMark.vue'
 
-describe('AppBrandMark — el monograma', () => {
-  it('vive en una sola constante', () => {
-    // Si mañana son otras letras, se cambia en un lugar y cambia en el drawer
-    // y en el acceso a la vez. Este test existe para que nadie lo escriba a
-    // mano en una pantalla y lo deje desincronizado en la otra.
-    expect(MONOGRAM).toBe('MC')
-    expect(mount(AppBrandMark).text()).toBe(MONOGRAM)
+describe('AppBrandMark — el logo', () => {
+  it('es una imagen del logo de la marca', () => {
+    const img = mount(AppBrandMark)
+    expect(img.element.tagName).toBe('IMG')
+    expect(img.attributes('src')).toContain('logo-nc')
   })
 })
 
 describe('AppBrandMark — tamaño', () => {
-  it('publica el tamaño como custom property, no como ancho suelto', () => {
-    // Todo lo de adentro (radio, tipografía, resplandor) se deriva de este
-    // número. Si se pasara sólo como width, el radio y la letra quedarían
-    // fijos y el mark se vería mal a cualquier tamaño que no sea el default.
-    const wrapper = mount(AppBrandMark, { props: { size: 42 } })
-    expect(wrapper.attributes('style')).toContain('--mark-size: 42px')
+  it('publica el alto como custom property', () => {
+    // El logo es apaisado: se fija el alto y el ancho sale solo.
+    const wrapper = mount(AppBrandMark, { props: { size: 56 } })
+    expect(wrapper.attributes('style')).toContain('--mark-size: 56px')
   })
 
   it('el default es el del drawer', () => {
-    expect(AppBrandMark.props.size.default).toBe(32)
+    expect(AppBrandMark.props.size.default).toBe(40)
   })
 })
 
@@ -41,26 +37,19 @@ describe('AppBrandMark — resplandor', () => {
 
 describe('AppBrandMark — accesibilidad', () => {
   it('sin label es decorativo', () => {
-    // El caso NORMAL: en el drawer y en el acceso el mark va pegado al nombre
+    // El caso NORMAL: en el drawer y en el acceso el logo va pegado al nombre
     // escrito en texto. Sin aria-hidden, el lector de pantalla anuncia la
     // marca dos veces seguidas.
     const wrapper = mount(AppBrandMark)
     expect(wrapper.attributes('aria-hidden')).toBe('true')
-    expect(wrapper.attributes('role')).toBeUndefined()
+    expect(wrapper.attributes('alt')).toBe('')
   })
 
   it('con label se anuncia como imagen', () => {
-    // Para cuando el mark va solo, sin el nombre al lado.
-    const wrapper = mount(AppBrandMark, { props: { label: 'MC For Kids' } })
+    // Para cuando el logo va solo, sin el nombre al lado.
+    const wrapper = mount(AppBrandMark, { props: { label: 'For Kids' } })
     expect(wrapper.attributes('role')).toBe('img')
-    expect(wrapper.attributes('aria-label')).toBe('MC For Kids')
+    expect(wrapper.attributes('alt')).toBe('For Kids')
     expect(wrapper.attributes('aria-hidden')).toBeUndefined()
-  })
-
-  it('las letras nunca se deletrean', () => {
-    // "M C" leído letra por letra no es el nombre de nada. El nombre lo da el
-    // texto de al lado o el aria-label; el span es pintura.
-    expect(mount(AppBrandMark, { props: { label: 'MC For Kids' } })
-      .find('.brand-mark__letters').attributes('aria-hidden')).toBe('true')
   })
 })

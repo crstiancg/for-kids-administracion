@@ -59,7 +59,7 @@
         style="--rise: 0"
       >
         <AppBrandMark
-          :size="42"
+          :size="56"
           glow
         />
         <div>
