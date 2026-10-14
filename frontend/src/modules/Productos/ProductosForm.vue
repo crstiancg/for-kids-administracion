@@ -52,10 +52,36 @@
             />
           </template>
           <template #no-option>
-            <q-item>
+            <q-item
+              v-if="mostrarCrear('categoria', busquedaCategoria)"
+              v-close-popup
+              clickable
+              class="producto-form__crear"
+              @click="crearRapido('categoria', busquedaCategoria)"
+            >
+              <q-item-section avatar>
+                <q-icon name="add_circle" />
+              </q-item-section>
+              <q-item-section>Crear categoría «{{ busquedaCategoria.trim() }}»</q-item-section>
+            </q-item>
+            <q-item v-else>
               <q-item-section class="text-grey">
                 No hay categorías que coincidan.
               </q-item-section>
+            </q-item>
+          </template>
+          <template #after-options>
+            <q-item
+              v-if="mostrarCrear('categoria', busquedaCategoria)"
+              v-close-popup
+              clickable
+              class="producto-form__crear"
+              @click="crearRapido('categoria', busquedaCategoria)"
+            >
+              <q-item-section avatar>
+                <q-icon name="add_circle" />
+              </q-item-section>
+              <q-item-section>Crear categoría «{{ busquedaCategoria.trim() }}»</q-item-section>
             </q-item>
           </template>
         </q-select>
@@ -122,28 +148,91 @@
       <div class="producto-form__generador">
         <q-select
           v-model="tallasElegidas"
-          :options="opcionesTallas"
+          :options="tallasFiltradas"
           label="Tallas"
           multiple
           use-chips
+          use-input
+          input-debounce="0"
           dense
           outlined
           emit-value
           map-options
           class="producto-form__control producto-form__grow"
-        />
+          @filter="filtrarTallas"
+        >
+          <template #no-option>
+            <q-item
+              v-if="mostrarCrear('talla', busquedaTalla)"
+              v-close-popup
+              clickable
+              class="producto-form__crear"
+              @click="crearRapido('talla', busquedaTalla)"
+            >
+              <q-item-section avatar>
+                <q-icon name="add_circle" />
+              </q-item-section>
+              <q-item-section>Crear talla «{{ busquedaTalla.trim() }}»</q-item-section>
+            </q-item>
+          </template>
+          <template #after-options>
+            <q-item
+              v-if="mostrarCrear('talla', busquedaTalla)"
+              v-close-popup
+              clickable
+              class="producto-form__crear"
+              @click="crearRapido('talla', busquedaTalla)"
+            >
+              <q-item-section avatar>
+                <q-icon name="add_circle" />
+              </q-item-section>
+              <q-item-section>Crear talla «{{ busquedaTalla.trim() }}»</q-item-section>
+            </q-item>
+          </template>
+        </q-select>
         <q-select
           v-model="coloresElegidos"
-          :options="opcionesColores"
+          :options="coloresFiltrados"
           label="Colores"
           multiple
           use-chips
+          use-input
+          input-debounce="0"
           dense
           outlined
           emit-value
           map-options
           class="producto-form__control producto-form__grow"
+          @filter="filtrarColores"
         >
+          <template #no-option>
+            <q-item
+              v-if="mostrarCrear('color', busquedaColor)"
+              v-close-popup
+              clickable
+              class="producto-form__crear"
+              @click="crearRapido('color', busquedaColor)"
+            >
+              <q-item-section avatar>
+                <q-icon name="add_circle" />
+              </q-item-section>
+              <q-item-section>Crear color «{{ busquedaColor.trim() }}»</q-item-section>
+            </q-item>
+          </template>
+          <template #after-options>
+            <q-item
+              v-if="mostrarCrear('color', busquedaColor)"
+              v-close-popup
+              clickable
+              class="producto-form__crear"
+              @click="crearRapido('color', busquedaColor)"
+            >
+              <q-item-section avatar>
+                <q-icon name="add_circle" />
+              </q-item-section>
+              <q-item-section>Crear color «{{ busquedaColor.trim() }}»</q-item-section>
+            </q-item>
+          </template>
           <template #option="scope">
             <q-item v-bind="scope.itemProps">
               <q-item-section side>
@@ -567,6 +656,16 @@
       type="submit"
       hidden
     />
+
+    <!-- Crear una categoría, talla o color sin salir del producto. -->
+    <CatalogoRapidoDialog
+      v-model="rapido.abierto"
+      :tipo="rapido.tipo"
+      :nombre-inicial="rapido.nombre"
+      :categorias="categorias"
+      :tallas="tallas"
+      @creado="creadoRapido"
+    />
   </form>
 </template>
 
@@ -584,6 +683,8 @@ import { formatearPrecio } from '@/utils/moneda'
 import { opcionesPadre } from '@/modules/Categorias/arbol'
 import formProducto, { costoInicialTotal, nuevaVariante } from './FormProducto'
 import { sugerirSku } from './sku'
+import { useUserStore } from '@/stores/user-store'
+import CatalogoRapidoDialog from './CatalogoRapidoDialog.vue'
 
 const PATH = 'producto'
 const SUGERENCIAS_MEDIDAS = ['Largo', 'Pecho', 'Manga', 'Cintura', 'Cadera', 'Tiro']
@@ -599,6 +700,7 @@ const props = defineProps({
 const emit = defineEmits(['save'])
 
 const uid = `producto-${useId()}`
+const userStore = useUserStore()
 
 // Editar va por POST + _method=PUT (ver FormProducto.js).
 const form = props.id
@@ -631,6 +733,62 @@ function filtrarCategorias (valor, update) {
 // Tallas ya vienen en su orden de exhibición desde la API.
 const opcionesTallas = computed(() => tallas.value.map((t) => ({ value: t.id, label: t.nombre })))
 const opcionesColores = computed(() => colores.value.map((c) => ({ value: c.id, label: c.nombre, hexadecimal: c.hexadecimal })))
+
+const busquedaTalla = ref('')
+const busquedaColor = ref('')
+const filtrar = (opciones, termino) => (termino ? opciones.filter((o) => o.label.toLowerCase().includes(termino.toLowerCase())) : opciones)
+const tallasFiltradas = computed(() => filtrar(opcionesTallas.value, busquedaTalla.value))
+const coloresFiltrados = computed(() => filtrar(opcionesColores.value, busquedaColor.value))
+
+function filtrarTallas (valor, update) {
+  update(() => { busquedaTalla.value = valor })
+}
+
+function filtrarColores (valor, update) {
+  update(() => { busquedaColor.value = valor })
+}
+
+// ── Crear sin salir del producto ──
+// "Crear «X»" aparece si se tipeó algo, no hay uno IGUAL (sin mayúsculas:
+// "Rojo" puede convivir con "Rojo oscuro") y hay permiso para crearlo.
+const PERMISO_CREAR = { categoria: 'categorias.store', talla: 'tallas.store', color: 'colores.store' }
+const NOMBRES = {
+  categoria: () => categorias.value.map((c) => c.nombre),
+  talla: () => tallas.value.map((t) => t.nombre),
+  color: () => colores.value.map((c) => c.nombre)
+}
+
+function mostrarCrear (tipo, texto) {
+  const t = (texto ?? '').trim().toLowerCase()
+  return Boolean(t) &&
+    userStore.hasPermission(PERMISO_CREAR[tipo]) &&
+    !NOMBRES[tipo]().some((n) => n.toLowerCase() === t)
+}
+
+const rapido = ref({ abierto: false, tipo: 'categoria', nombre: '' })
+
+function crearRapido (tipo, texto) {
+  rapido.value = { abierto: true, tipo, nombre: texto ?? '' }
+}
+
+// Lo creado entra a su lista y queda ELEGIDO: es lo que se estaba buscando.
+function creadoRapido (entidad) {
+  const tipo = rapido.value.tipo
+  if (tipo === 'categoria') {
+    categorias.value.push(entidad)
+    form.producto.categoria_id = entidad.id
+    busquedaCategoria.value = ''
+    form.validate(`${PATH}.categoria_id`)
+  } else if (tipo === 'talla') {
+    tallas.value = [...tallas.value, entidad].sort((a, b) => a.orden - b.orden)
+    tallasElegidas.value.push(entidad.id)
+    busquedaTalla.value = ''
+  } else {
+    colores.value = [...colores.value, entidad].sort((a, b) => a.nombre.localeCompare(b.nombre))
+    coloresElegidos.value.push(entidad.id)
+    busquedaColor.value = ''
+  }
+}
 
 // ── Errores ──
 function errorDe (i, campo) {
@@ -1063,6 +1221,11 @@ defineExpose({ form, submit })
   padding-top: 9px;
   text-align: right;
   color: var(--app-ink-2);
+}
+
+.producto-form__crear {
+  color: var(--q-primary);
+  font-weight: 600;
 }
 
 .producto-form__swatch {
