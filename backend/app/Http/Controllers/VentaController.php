@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\Busqueda;
 use App\Http\Requests\RegistrarVentaRequest;
 use App\Http\Resources\CatalogoProductoResource;
 use App\Http\Resources\PedidoResource;
@@ -80,10 +81,10 @@ class VentaController extends Controller
         if ($request->filled('search')) {
             $term = '%'.$request->input('search').'%';
             $query->where(fn (Builder $q) => $q
-                ->where('productos.nombre', 'like', $term)
+                ->where('productos.nombre', Busqueda::like(), $term)
                 ->orWhereHas('variantes', fn (Builder $v) => $v
-                    ->where('sku', 'like', $term)
-                    ->orWhere('codigo_barras', 'like', $term)));
+                    ->where('sku', Busqueda::like(), $term)
+                    ->orWhere('codigo_barras', Busqueda::like(), $term)));
         }
 
         match ($request->input('order_by', 'vendidos')) {

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\Busqueda;
 use App\Http\Requests\StoreProductoRequest;
 use App\Http\Resources\ProductoResource;
 use App\Models\Archivo;
@@ -41,8 +42,8 @@ class ProductoController extends Controller
         if ($request->filled('search')) {
             $term = '%'.$request->input('search').'%';
             $query->where(fn (Builder $q) => $q
-                ->where('productos.nombre', 'like', $term)
-                ->orWhereHas('variantes', fn (Builder $v) => $v->where('sku', 'like', $term)));
+                ->where('productos.nombre', Busqueda::like(), $term)
+                ->orWhereHas('variantes', fn (Builder $v) => $v->where('sku', Busqueda::like(), $term)));
         }
 
         return $this->generateViewSetList(

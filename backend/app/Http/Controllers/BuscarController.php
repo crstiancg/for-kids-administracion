@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\Busqueda;
 use App\Models\Cliente;
 use App\Models\Pedido;
 use App\Models\Producto;
@@ -38,9 +39,9 @@ class BuscarController extends Controller
                 ->withSum('variantes as stock_total', 'stock')
                 // Por nombre, SKU o el código de barras que lee el escáner.
                 ->where(fn (Builder $q) => $q
-                    ->where('nombre', 'like', $like)
+                    ->where('nombre', Busqueda::like(), $like)
                     ->orWhereHas('variantes', fn (Builder $v) => $v
-                        ->where('sku', 'like', $like)
+                        ->where('sku', Busqueda::like(), $like)
                         ->orWhere('codigo_barras', $termino)))
                 ->orderBy('nombre')
                 ->limit(self::POR_GRUPO)
@@ -65,8 +66,8 @@ class BuscarController extends Controller
                 ->with('cliente:id,nombre')
                 ->where(fn (Builder $q) => $q
                     ->when($numero > 0, fn (Builder $q) => $q->orWhere('id', $numero))
-                    ->orWhere('codigo', 'like', $like)
-                    ->orWhereHas('cliente', fn (Builder $c) => $c->where('nombre', 'like', $like)))
+                    ->orWhere('codigo', Busqueda::like(), $like)
+                    ->orWhereHas('cliente', fn (Builder $c) => $c->where('nombre', Busqueda::like(), $like)))
                 ->latest('id')
                 ->limit(self::POR_GRUPO)
                 ->get()
@@ -85,9 +86,9 @@ class BuscarController extends Controller
         if ($usuario->can('clientes.index')) {
             Cliente::query()
                 ->where(fn (Builder $q) => $q
-                    ->where('nombre', 'like', $like)
-                    ->orWhere('numero_documento', 'like', $like)
-                    ->orWhere('telefono', 'like', $like))
+                    ->where('nombre', Busqueda::like(), $like)
+                    ->orWhere('numero_documento', Busqueda::like(), $like)
+                    ->orWhere('telefono', Busqueda::like(), $like))
                 ->orderBy('nombre')
                 ->limit(self::POR_GRUPO)
                 ->get()

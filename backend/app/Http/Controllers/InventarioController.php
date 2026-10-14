@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\Busqueda;
 use App\Http\Requests\RegistrarAjusteRequest;
 use App\Http\Requests\RegistrarEntradaRequest;
 use App\Http\Requests\RegistrarSalidaRequest;
@@ -46,10 +47,10 @@ class InventarioController extends Controller
         if ($request->filled('search')) {
             $term = '%'.$request->input('search').'%';
             $query->where(fn (Builder $q) => $q
-                ->where('movimiento_inventarios.referencia', 'like', $term)
+                ->where('movimiento_inventarios.referencia', Busqueda::like(), $term)
                 ->orWhereHas('variante', fn (Builder $v) => $v
-                    ->where('sku', 'like', $term)
-                    ->orWhereHas('producto', fn (Builder $p) => $p->where('nombre', 'like', $term))));
+                    ->where('sku', Busqueda::like(), $term)
+                    ->orWhereHas('producto', fn (Builder $p) => $p->where('nombre', Busqueda::like(), $term))));
         }
 
         if (! $request->filled('order_by')) {
@@ -87,9 +88,9 @@ class InventarioController extends Controller
         if ($request->filled('search')) {
             $term = '%'.$request->input('search').'%';
             $query->where(fn (Builder $q) => $q
-                ->where('variantes.sku', 'like', $term)
-                ->orWhere('variantes.codigo_barras', 'like', $term)
-                ->orWhereHas('producto', fn (Builder $p) => $p->where('nombre', 'like', $term)));
+                ->where('variantes.sku', Busqueda::like(), $term)
+                ->orWhere('variantes.codigo_barras', Busqueda::like(), $term)
+                ->orWhereHas('producto', fn (Builder $p) => $p->where('nombre', Busqueda::like(), $term)));
         }
 
         return $this->generateViewSetList(

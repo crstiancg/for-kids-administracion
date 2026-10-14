@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\Busqueda;
 use App\Http\Requests\StoreOfertaRequest;
 use App\Http\Resources\OfertaResource;
 use App\Models\Oferta;
@@ -45,10 +46,10 @@ class OfertaController extends Controller
         if ($request->filled('search')) {
             $term = '%'.$request->input('search').'%';
             $query->where(fn (Builder $q) => $q
-                ->where('ofertas.nombre', 'like', $term)
-                ->orWhereHas('productos', fn (Builder $p) => $p->where('nombre', 'like', $term))
-                ->orWhereHas('variantes.producto', fn (Builder $p) => $p->where('nombre', 'like', $term))
-                ->orWhereHas('categorias', fn (Builder $c) => $c->where('nombre', 'like', $term)));
+                ->where('ofertas.nombre', Busqueda::like(), $term)
+                ->orWhereHas('productos', fn (Builder $p) => $p->where('nombre', Busqueda::like(), $term))
+                ->orWhereHas('variantes.producto', fn (Builder $p) => $p->where('nombre', Busqueda::like(), $term))
+                ->orWhereHas('categorias', fn (Builder $c) => $c->where('nombre', Busqueda::like(), $term)));
         }
 
         if (! $request->filled('order_by')) {

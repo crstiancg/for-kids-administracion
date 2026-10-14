@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\Busqueda;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -62,7 +63,7 @@ abstract class Controller
             $term = '%'.$request->input('search').'%';
             $query->where(function (Builder $q) use ($searchBy, $term, $qualify) {
                 foreach ($searchBy as $column) {
-                    $q->orWhere($qualify($column), 'like', $term);
+                    $q->orWhere($qualify($column), Busqueda::like(), $term);
                 }
             });
         }

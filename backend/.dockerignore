@@ -1,0 +1,16 @@
+# Nada de secretos ni artefactos locales dentro de la imagen.
+.env
+.env.*
+!.env.example
+vendor
+node_modules
+tests
+.phpunit.result.cache
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/app/public/*
+storage/*.key
+for-kids
+.git

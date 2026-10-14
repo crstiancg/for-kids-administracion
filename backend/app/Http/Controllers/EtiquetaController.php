@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\Busqueda;
 use App\Http\Resources\EtiquetaResource;
 use App\Models\Variante;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,9 +27,9 @@ class EtiquetaController extends Controller
         if ($request->filled('search')) {
             $term = '%'.$request->input('search').'%';
             $query->where(fn (Builder $q) => $q
-                ->where('variantes.sku', 'like', $term)
-                ->orWhere('variantes.codigo_barras', 'like', $term)
-                ->orWhere('productos.nombre', 'like', $term));
+                ->where('variantes.sku', Busqueda::like(), $term)
+                ->orWhere('variantes.codigo_barras', Busqueda::like(), $term)
+                ->orWhere('productos.nombre', Busqueda::like(), $term));
         }
 
         // Por nombre de producto y, dentro, en el orden de las tallas.

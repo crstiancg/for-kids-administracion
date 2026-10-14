@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\Busqueda;
 use App\Http\Requests\StorePedidoRequest;
 use App\Http\Resources\PedidoResource;
 use App\Models\Pedido;
@@ -26,10 +27,10 @@ class PedidoController extends Controller
         if ($request->filled('search')) {
             $term = '%'.$request->input('search').'%';
             $query->where(fn (Builder $q) => $q
-                ->where('pedidos.codigo', 'like', $term)
+                ->where('pedidos.codigo', Busqueda::like(), $term)
                 ->orWhereHas('cliente', fn (Builder $c) => $c
-                    ->where('nombre', 'like', $term)
-                    ->orWhere('numero_documento', 'like', $term)));
+                    ->where('nombre', Busqueda::like(), $term)
+                    ->orWhere('numero_documento', Busqueda::like(), $term)));
         }
 
         if (! $request->filled('order_by')) {

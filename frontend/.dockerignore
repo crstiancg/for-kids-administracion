@@ -1,0 +1,7 @@
+# Sólo el código: dependencias y builds se rehacen dentro de la imagen.
+node_modules
+dist
+.quasar
+.env
+.env.*
+.git

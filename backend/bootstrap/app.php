@@ -23,6 +23,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // un ID inexistente da 404 y uno existente 403, y eso revela qué
         // registros hay. Queda igual después de auth:api (necesita al usuario).
         $middleware->prependToPriorityList(SubstituteBindings::class, AutorizarPorRuta::class);
+
+        // En producción corre detrás del proxy de Dokploy (Traefik), que
+        // termina el HTTPS: sin esto Laravel cree que todo llega por http.
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
