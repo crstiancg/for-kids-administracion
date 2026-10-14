@@ -61,16 +61,21 @@ class DemoSeeder extends Seeder
 
     public function run(Inventario $inventario): void
     {
-        $tallas = collect(self::TALLAS)
-            ->map(fn ($orden, $nombre) => Talla::firstOrCreate(['nombre' => (string) $nombre], ['orden' => $orden]));
-        $colores = collect(self::COLORES)
-            ->map(fn ($hex, $nombre) => Color::firstOrCreate(['nombre' => $nombre], ['hexadecimal' => $hex]));
+        // Reusa el catálogo que ya exista (CatalogoSeeder o cargado a mano):
+        // por nombre sin mayúsculas y, en colores, también por hexadecimal.
+        $tallas = collect(self::TALLAS)->map(fn ($orden, $nombre) => $this->porNombre(Talla::query(), (string) $nombre)
+            ?? Talla::create(['nombre' => (string) $nombre, 'orden' => $orden]));
+        $colores = collect(self::COLORES)->map(fn ($hex, $nombre) => $this->porNombre(Color::query(), $nombre)
+            ?? Color::where('hexadecimal', $hex)->first()
+            ?? Color::create(['nombre' => $nombre, 'hexadecimal' => $hex]));
 
         $categorias = [];
         foreach (self::CATEGORIAS as $padre => $hijas) {
-            $raiz = Categoria::firstOrCreate(['nombre' => $padre, 'parent_id' => null]);
+            $raiz = $this->porNombre(Categoria::query()->whereNull('parent_id'), $padre)
+                ?? Categoria::create(['nombre' => $padre, 'parent_id' => null]);
             foreach ($hijas as $hija) {
-                $categorias["{$padre}/{$hija}"] = Categoria::firstOrCreate(['nombre' => $hija, 'parent_id' => $raiz->id]);
+                $categorias["{$padre}/{$hija}"] = $this->porNombre(Categoria::query()->where('parent_id', $raiz->id), $hija)
+                    ?? Categoria::create(['nombre' => $hija, 'parent_id' => $raiz->id]);
             }
         }
 
@@ -109,5 +114,10 @@ class DemoSeeder extends Seeder
         }
 
         $this->call(DemoVentasSeeder::class);
+    }
+
+    private function porNombre($query, string $nombre)
+    {
+        return $query->whereRaw('LOWER(nombre) = ?', [mb_strtolower($nombre)])->first();
     }
 }

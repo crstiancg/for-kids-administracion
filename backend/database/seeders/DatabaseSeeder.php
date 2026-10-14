@@ -18,6 +18,8 @@ class DatabaseSeeder extends Seeder
             ClientTokenSeeder::class,
             PermissionSeeder::class,
             UserSeeder::class,
+            // Tallas, colores y categorías base: listo para cargar productos.
+            CatalogoSeeder::class,
         ]);
     }
 }
