@@ -17,12 +17,13 @@
 
     <div class="ticket__separador" />
 
-    <!-- Hasta emitir boletas electrónicas, esto NO es un comprobante de pago. -->
+    <!-- Hasta emitir boletas electrónicas, esto NO es un comprobante de pago:
+         se presenta como nota de pedido. -->
     <div class="ticket__centro ticket__tipo">
       TICKET DE VENTA {{ pedido.codigo }}
     </div>
     <div class="ticket__centro">
-      No es comprobante de pago
+      Nota de pedido
     </div>
 
     <div class="ticket__separador" />
